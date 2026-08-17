@@ -1,9 +1,7 @@
-import * as child_process from "node:child_process";
 import { exec } from "node:child_process";
 
 import { Range } from "core";
-import { EXTENSION_NAME } from "core/util/constants";
-import { DEFAULT_IGNORES, defaultIgnoresGlob } from "core/indexing/ignore";
+import { EXTENSION_NAME } from "./util/constants";
 import * as URI from "uri-js";
 import * as vscode from "vscode";
 
@@ -16,8 +14,7 @@ import { Repository } from "./otherExtensions/git";
 import { SecretStorage } from "./stubs/SecretStorage";
 import { VsCodeIdeUtils } from "./util/ideUtils";
 import { getExtensionVersion, isExtensionPrerelease } from "./util/util";
-import { getExtensionUri, openEditorAndRevealRange } from "./util/vscode";
-import { VsCodeWebviewProtocol } from "./webviewProtocol";
+import { openEditorAndRevealRange } from "./util/vscode";
 
 import type {
   DocumentSymbol,
@@ -25,7 +22,6 @@ import type {
   FileType,
   IDE,
   IdeInfo,
-  IdeSettings,
   IndexTag,
   Location,
   Problem,
@@ -39,10 +35,7 @@ class VsCodeIde implements IDE {
   ideUtils: VsCodeIdeUtils;
   secretStorage: SecretStorage;
 
-  constructor(
-    private readonly vscodeWebviewProtocolPromise: Promise<VsCodeWebviewProtocol>,
-    private readonly context: vscode.ExtensionContext,
-  ) {
+  constructor(private readonly context: vscode.ExtensionContext) {
     this.ideUtils = new VsCodeIdeUtils();
     this.secretStorage = new SecretStorage(context);
   }
@@ -241,15 +234,6 @@ class VsCodeIde implements IDE {
     return this.ideUtils.getRepo(vscode.Uri.parse(dir));
   }
 
-  async isTelemetryEnabled(): Promise<boolean> {
-    const globalEnabled = vscode.env.isTelemetryEnabled;
-    const continueEnabled: boolean =
-      (await vscode.workspace
-        .getConfiguration(EXTENSION_NAME)
-        .get("telemetryEnabled")) ?? true;
-    return globalEnabled && continueEnabled;
-  }
-
   isWorkspaceRemote(): Promise<boolean> {
     return Promise.resolve(vscode.env.remoteName !== undefined);
   }
@@ -273,23 +257,6 @@ class VsCodeIde implements IDE {
     return await this.ideUtils.getTerminalContents(1);
   }
 
-  async getDebugLocals(threadIndex: number): Promise<string> {
-    return await this.ideUtils.getDebugLocals(threadIndex);
-  }
-
-  async getTopLevelCallStackSources(
-    threadIndex: number,
-    stackDepth: number,
-  ): Promise<string[]> {
-    return await this.ideUtils.getTopLevelCallStackSources(
-      threadIndex,
-      stackDepth,
-    );
-  }
-  async getAvailableThreads(): Promise<Thread[]> {
-    return await this.ideUtils.getAvailableThreads();
-  }
-
   async getWorkspaceDirs(): Promise<string[]> {
     return this.ideUtils.getWorkspaceDirectories().map((uri) => uri.toString());
   }
@@ -303,10 +270,6 @@ class VsCodeIde implements IDE {
 
   async removeFile(fileUri: string): Promise<void> {
     await vscode.workspace.fs.delete(vscode.Uri.parse(fileUri));
-  }
-
-  async showVirtualFile(title: string, contents: string): Promise<void> {
-    this.ideUtils.showVirtualFile(title, contents);
   }
 
   async openFile(fileUri: string): Promise<void> {
@@ -441,193 +404,6 @@ class VsCodeIde implements IDE {
       .map((t) => (t.input as vscode.TabInputText).uri.toString());
   }
 
-  runRipgrepQuery(dirUri: string, args: string[]) {
-    const relativeDir = vscode.Uri.parse(dirUri).fsPath;
-    const ripGrepUri = vscode.Uri.joinPath(
-      getExtensionUri(),
-      "out/node_modules/@vscode/ripgrep/bin/rg",
-    );
-    const p = child_process.spawn(ripGrepUri.fsPath, args, {
-      cwd: relativeDir,
-    });
-    let output = "";
-
-    p.stdout.on("data", (data) => {
-      output += data.toString();
-    });
-
-    return new Promise<string>((resolve, reject) => {
-      p.on("error", reject);
-      p.on("close", (code) => {
-        if (code === 0) {
-          resolve(output);
-        } else if (code === 1) {
-          // No matches
-          resolve(
-            "No matches found. Build, secrets, etc. dirs and files are not included.",
-          );
-        } else {
-          reject(new Error(`Process exited with code ${code}`));
-        }
-      });
-    });
-  }
-
-  async getFileResults(
-    pattern: string,
-    maxResults?: number,
-  ): Promise<string[]> {
-    // Create a single combined ignore pattern for ripgrep (calculated once)
-
-    if (vscode.env.remoteName) {
-      // TODO better tests for this remote search implementation
-      // throw new Error("Ripgrep not supported, this workspace is remote");
-
-      // IMPORTANT: findFiles automatically accounts for .gitignore
-      const ignoreFiles = await vscode.workspace.findFiles(
-        "**/.continueignore",
-        null,
-      );
-
-      const ignoreGlobs: Set<string> = new Set();
-      // Add default ignores from core
-      for (const pattern of DEFAULT_IGNORES) {
-        ignoreGlobs.add(pattern);
-      }
-
-      for (const file of ignoreFiles) {
-        const content = await this.ideUtils.readFile(file);
-        if (content === null) {
-          continue;
-        }
-        const filePath = vscode.workspace.asRelativePath(file);
-        const fileDir = filePath
-          .replace(/\\/g, "/")
-          .replace(/\/$/, "")
-          .split("/")
-          .slice(0, -1)
-          .join("/");
-
-        const patterns = Buffer.from(content)
-          .toString()
-          .split("\n")
-          .map((line) => line.trim())
-          .filter(
-            (line) => line && !line.startsWith("#") && !pattern.startsWith("!"),
-          );
-        // VSCode does not support negations
-
-        patterns
-          // Handle prefix
-          .map((pattern) => {
-            const normalizedPattern = pattern.replace(/\\/g, "/");
-
-            if (normalizedPattern.startsWith("/")) {
-              if (fileDir) {
-                return `{/,}${normalizedPattern}`;
-              } else {
-                return `${fileDir}/${normalizedPattern.substring(1)}`;
-              }
-            } else {
-              if (fileDir) {
-                return `${fileDir}/${normalizedPattern}`;
-              } else {
-                return `**/${normalizedPattern}`;
-              }
-            }
-          })
-          // Handle suffix
-          .map((pattern) => {
-            return pattern.endsWith("/") ? `${pattern}**/*` : pattern;
-          })
-          .forEach((pattern) => {
-            ignoreGlobs.add(pattern);
-          });
-      }
-
-      const ignoreGlobsArray = Array.from(ignoreGlobs);
-
-      const results = await vscode.workspace.findFiles(
-        pattern,
-        ignoreGlobs.size ? `{${ignoreGlobsArray.join(",")}}` : null,
-        maxResults,
-      );
-      return results.map((result) => vscode.workspace.asRelativePath(result));
-    } else {
-      const results: string[] = [];
-      // Create a single combined ignore pattern using glob brace expansion
-      for (const dir of await this.getWorkspaceDirs()) {
-        const dirResults = await this.runRipgrepQuery(dir, [
-          "--files",
-          "--iglob",
-          pattern,
-          "--ignore-file",
-          ".continueignore",
-          "--ignore-file",
-          ".gitignore",
-          "--glob",
-          defaultIgnoresGlob,
-          ...(maxResults ? ["--max-count", String(maxResults)] : []),
-        ]);
-
-        results.push(dirResults);
-      }
-
-      const allResults = results.join("\n").split("\n");
-      if (maxResults) {
-        // In the case of multiple workspaces, maxResults will be applied to each workspace
-        // And then the combined results will also be truncated
-        return allResults.slice(0, maxResults);
-      } else {
-        return allResults;
-      }
-    }
-  }
-
-  async getSearchResults(query: string, maxResults?: number): Promise<string> {
-    if (vscode.env.remoteName) {
-      throw new Error("Ripgrep not supported, this workspace is remote");
-    }
-    const results: string[] = [];
-
-    for (const dir of await this.getWorkspaceDirs()) {
-      const dirResults = await this.runRipgrepQuery(dir, [
-        "-i", // Case-insensitive search
-        "--ignore-file",
-        ".continueignore",
-        "--ignore-file",
-        ".gitignore",
-        "-C",
-        "2", // Show 2 lines of context
-        "--heading", // Only show filepath once per result
-        // Use a single glob with all default ignores
-        "--glob",
-        defaultIgnoresGlob,
-        ...(maxResults ? ["-m", maxResults.toString()] : []),
-        "-e",
-        query, // Pattern to search for
-        ".", // Directory to search in
-      ]);
-
-      results.push(dirResults);
-    }
-
-    const allResults = results.join("\n");
-    if (maxResults) {
-      // In case of multiple workspaces, do max results per workspace and then truncate to maxResults
-      // Will prioritize first workspace results, fine for now
-      // Results are separated by either ./ or --
-      const matches = Array.from(allResults.matchAll(/(\n--|\n\.\/)/g));
-      if (matches.length > maxResults) {
-        return allResults.substring(0, matches[maxResults].index);
-      } else {
-        return allResults;
-      }
-    } else {
-      return allResults;
-    }
-  }
-
   async getProblems(fileUri?: string | undefined): Promise<Problem[]> {
     const uri = fileUri
       ? vscode.Uri.parse(fileUri)
@@ -674,33 +450,6 @@ class VsCodeIde implements IDE {
   async listDir(dir: string): Promise<[string, FileType][]> {
     const entries = await this.ideUtils.readDirectory(vscode.Uri.parse(dir));
     return entries === null ? [] : (entries as any);
-  }
-
-  private getIdeSettingsSync(): IdeSettings {
-    const settings = vscode.workspace.getConfiguration(EXTENSION_NAME);
-    const remoteConfigServerUrl = settings.get<string | undefined>(
-      "remoteConfigServerUrl",
-      undefined,
-    );
-    const ideSettings: IdeSettings = {
-      remoteConfigServerUrl,
-      remoteConfigSyncPeriod: settings.get<number>(
-        "remoteConfigSyncPeriod",
-        60,
-      ),
-      userToken: settings.get<string>("userToken", ""),
-      continueTestEnvironment: "production",
-      pauseCodebaseIndexOnStart: settings.get<boolean>(
-        "pauseCodebaseIndexOnStart",
-        false,
-      ),
-    };
-    return ideSettings;
-  }
-
-  async getIdeSettings(): Promise<IdeSettings> {
-    const ideSettings = this.getIdeSettingsSync();
-    return ideSettings;
   }
 }
 

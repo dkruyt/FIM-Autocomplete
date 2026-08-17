@@ -1,8 +1,31 @@
 version: 2
 updates:
   - package-ecosystem: github-actions
-    directory: "/"
+    directory: /
     schedule:
-      interval: daily
-    ignore:
-      - dependency-name: dtolnay/rust-toolchain
+      interval: monthly
+
+  - package-ecosystem: npm
+    directories:
+      - /core
+      - /extensions/vscode
+      - /packages/fetch
+      - /packages/llm-info
+      - /packages/openai-adapters
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      # Provider SDKs move constantly and are only reachable through
+      # llmFromProviderAndOptions; batch them into one PR.
+      provider-sdks:
+        patterns:
+          - "@ai-sdk/*"
+          - "@anthropic-ai/*"
+          - "@aws-sdk/*"
+          - "@google/*"
+          - "ai"
+          - "openai"
+          - "replicate"
+      dev:
+        dependency-type: development

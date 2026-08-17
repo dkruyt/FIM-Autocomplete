@@ -38,9 +38,7 @@ export interface AutocompleteOutcome extends TabAutocompleteOptions {
   cacheHit: boolean;
   numLines: number;
   filepath: string;
-  gitRepo?: string;
   completionId: string;
-  uniqueId: string;
   timestamp: string;
   enabledStaticContextualization?: boolean;
 }

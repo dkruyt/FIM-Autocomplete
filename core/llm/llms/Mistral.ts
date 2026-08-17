@@ -1,5 +1,4 @@
 import { ChatMessage, LLMOptions } from "../../index.js";
-import { codestralEditPrompt } from "../templates/edit/codestral.js";
 
 import OpenAI from "./OpenAI.js";
 
@@ -10,9 +9,7 @@ class Mistral extends OpenAI {
   static defaultOptions: Partial<LLMOptions> = {
     apiBase: "https://api.mistral.ai/v1/",
     model: "codestral-latest",
-    promptTemplates: {
-      edit: codestralEditPrompt,
-    },
+    promptTemplates: {},
     maxEmbeddingBatchSize: 128,
   };
 

@@ -1,9 +1,8 @@
 import { ChatCompletionCreateParams } from "openai/resources/index";
 
-import { OPENROUTER_HEADERS } from "@continuedev/openai-adapters";
+import { OPENROUTER_HEADERS } from "@fim/openai-adapters";
 
 import { LLMOptions } from "../../index.js";
-import { osModelsEditPrompt } from "../templates/edit.js";
 
 import OpenAI from "./OpenAI.js";
 
@@ -14,9 +13,7 @@ class OpenRouter extends OpenAI {
   static defaultOptions: Partial<LLMOptions> = {
     apiBase: "https://openrouter.ai/api/v1/",
     model: "gpt-4o-mini",
-    promptTemplates: {
-      edit: osModelsEditPrompt,
-    },
+    promptTemplates: {},
     useLegacyCompletionsEndpoint: false,
   };
 

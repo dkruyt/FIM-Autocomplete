@@ -62,8 +62,9 @@ function asyncEncoderForModel(modelName: string): AsyncEncoder {
 
   const modelType = autodetectTemplateType(modelName);
   if (!modelType || modelType === "none") {
-    // Right now there is a problem packaging js-tiktoken in workers. Until then falling back
-    // Cannot find package 'js-tiktoken' imported from /Users/nate/gh/continuedev/continue/extensions/vscode/out/tiktokenWorkerPool.mjs
+    // js-tiktoken doesn't resolve from inside the packaged worker
+    // ("Cannot find package 'js-tiktoken' imported from out/tiktokenWorkerPool.mjs"),
+    // so fall back to the llama encoder rather than:
     // return gptAsyncEncoder;
     return llamaAsyncEncoder;
   }

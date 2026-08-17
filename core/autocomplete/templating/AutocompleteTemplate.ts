@@ -34,6 +34,71 @@ export interface AutocompleteTemplate {
   completionOptions?: Partial<CompletionOptions>;
 }
 
+/**
+ * JetBrains Mellum. Unlike most FIM models the suffix comes *first*, and
+ * cross-file context is supplied as a sequence of `<filename>` blocks ahead of
+ * the current file.
+ *
+ * https://huggingface.co/JetBrains/Mellum-4b-sft-all
+ */
+const MELLUM_SPLIT = "<|mellum_fim_split|>";
+
+const mellumFimTemplate: AutocompleteTemplate = {
+  compilePrefixSuffix: (
+    prefix: string,
+    suffix: string,
+    filepath: string,
+    reponame: string,
+    snippets: AutocompleteSnippet[],
+    workspaceUris: string[],
+  ): [string, string] => {
+    const relativePaths = getShortestUniqueRelativeUriPaths(
+      [
+        ...snippets.map((snippet) =>
+          "filepath" in snippet ? snippet.filepath : "Untitled.txt",
+        ),
+        filepath,
+      ],
+      workspaceUris,
+    );
+    const currentFile = relativePaths[relativePaths.length - 1].uniquePath;
+
+    // Other files come first, each introduced by its own <filename> marker,
+    // then the current file's marker. Everything up to MELLUM_SPLIT has to land
+    // *before* <fim_suffix>, so `template` splits there rather than wrapping the
+    // whole prefix.
+    const otherFiles = snippets
+      .map(
+        (snippet, i) =>
+          `<filename>${relativePaths[i].uniquePath}\n${snippet.content}`,
+      )
+      .join("\n");
+
+    const header = snippets.length
+      ? `${otherFiles}\n<filename>${currentFile}\n`
+      : `<filename>${currentFile}\n`;
+
+    return [`${header}${MELLUM_SPLIT}${prefix}`, suffix];
+  },
+  template: (prefix: string, suffix: string): string => {
+    const splitAt = prefix.indexOf(MELLUM_SPLIT);
+    const header = splitAt === -1 ? "" : prefix.slice(0, splitAt);
+    const filePrefix =
+      splitAt === -1 ? prefix : prefix.slice(splitAt + MELLUM_SPLIT.length);
+
+    return `${header}<fim_suffix>${suffix}<fim_prefix>${filePrefix}<fim_middle>`;
+  },
+  completionOptions: {
+    stop: [
+      "<fim_prefix>",
+      "<fim_suffix>",
+      "<fim_middle>",
+      "<filename>",
+      "<|endoftext|>",
+    ],
+  },
+};
+
 // https://huggingface.co/stabilityai/stable-code-3b
 const stableCodeFimTemplate: AutocompleteTemplate = {
   template: "<fim_prefix>{{{prefix}}}<fim_suffix>{{{suffix}}}<fim_middle>",
@@ -522,6 +587,10 @@ export function getTemplateForModel(model: string): AutocompleteTemplate {
   // }
   if (lowerCaseModel.includes("mercury")) {
     return mercuryMultifileFimTemplate;
+  }
+
+  if (lowerCaseModel.includes("mellum")) {
+    return mellumFimTemplate;
   }
 
   if (lowerCaseModel.includes("qwen") && lowerCaseModel.includes("coder")) {

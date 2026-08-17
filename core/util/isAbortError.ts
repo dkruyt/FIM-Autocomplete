@@ -1,6 +1,6 @@
 /**
  * Unified abort error detection.
- * Covers all known abort patterns in the Continue codebase:
+ * Covers all known abort patterns in this codebase:
  * - String literal "cancel" (streaming cancellation)
  * - Error with name "AbortError" (node-fetch, DOM)
  * - Error with code "ABORT_ERR" (Node.js AbortSignal)
@@ -10,7 +10,7 @@
 export function isAbortError(error: unknown): boolean {
   if (error === null || error === undefined) return false;
 
-  // String-based "cancel" (used in Continue streaming path)
+  // String-based "cancel" (used in the streaming path)
   if (error === "cancel") return true;
 
   // Standard Error objects

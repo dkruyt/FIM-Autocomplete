@@ -1,4 +1,4 @@
-import { streamSse } from "@continuedev/fetch";
+import { streamSse } from "@fim/fetch";
 import { OpenAI } from "openai/index";
 import {
   ChatCompletion,
@@ -97,8 +97,7 @@ export class OpenAIApi implements BaseLlmApi {
 
   modifyCompletionBody<
     T extends
-      | CompletionCreateParamsNonStreaming
-      | CompletionCreateParamsStreaming,
+      CompletionCreateParamsNonStreaming | CompletionCreateParamsStreaming,
   >(body: T): T {
     return body;
   }

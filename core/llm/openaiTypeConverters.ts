@@ -1,4 +1,4 @@
-import { FimCreateParamsStreaming } from "@continuedev/openai-adapters/dist/apis/base";
+import { FimCreateParamsStreaming } from "@fim/openai-adapters/dist/apis/base";
 import {
   ChatCompletion,
   ChatCompletionAssistantMessageParam,
@@ -1027,8 +1027,7 @@ export function toResponsesInput(messages: ChatMessage[]): ResponseInput {
         const allRespIds =
           (msg.metadata?.responsesOutputItemIds as string[] | undefined) || [];
         const respId = msg.metadata?.responsesOutputItemId as
-          | string
-          | undefined;
+          string | undefined;
         const fcIds = allRespIds.filter((id) => id.startsWith("fc_"));
         if (fcIds.length === 0 && respId?.startsWith("fc_")) {
           fcIds.push(respId);

@@ -1,6 +1,6 @@
 import { AuthClient, GoogleAuth, JWT, auth } from "google-auth-library";
 
-import { streamResponse, streamSse } from "@continuedev/fetch";
+import { streamResponse, streamSse } from "@fim/fetch";
 import { ChatMessage, CompletionOptions, LLMOptions } from "../../index.js";
 import { renderChatMessage, stripImages } from "../../util/messageContent.js";
 import { BaseLLM } from "../index.js";
@@ -447,7 +447,7 @@ class VertexAI extends BaseLLM {
       return; // Aborted by user
     }
     // Streaming is not supported by code-gecko
-    // TODO: convert to non-streaming fim method when one exist in continue.
+    // TODO: convert to a non-streaming fim method once one exists.
     yield (await resp.json()).predictions[0].content;
   }
 

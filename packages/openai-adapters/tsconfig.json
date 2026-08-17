@@ -14,10 +14,14 @@
     "resolveJsonModule": true,
     "isolatedModules": false,
     "noEmitOnError": false,
-    "types": ["node", "jest"],
+    "types": ["node"],
+    "rootDir": "src",
     "outDir": "dist",
     "declaration": true,
     "sourceMap": true
   },
-  "include": ["src/**/*"]
+  // Tests are run by vitest (globals: true) and were never meant to ship in
+  // dist/; they only compiled before because @types/jest was pulled in.
+  "include": ["src/**/*"],
+  "exclude": ["src/test/**", "src/**/*.test.ts", "src/**/*.vitest.ts"]
 }

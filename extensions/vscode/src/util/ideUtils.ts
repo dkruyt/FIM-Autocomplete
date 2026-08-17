@@ -1,18 +1,10 @@
-import { EXTENSION_NAME } from "core/util/constants";
+import { EXTENSION_NAME } from "./constants";
 import { findUriInDirs } from "core/util/uri";
 import _ from "lodash";
 import * as URI from "uri-js";
 import * as vscode from "vscode";
 
-import { threadStopped } from "../debug/debug";
-import { VsCodeExtension } from "../extension/VsCodeExtension";
 import { GitExtension, Repository } from "../otherExtensions/git";
-import {
-  SuggestionRanges,
-  acceptSuggestionCommand,
-  rejectSuggestionCommand,
-  showSuggestion as showSuggestionInEditor,
-} from "../suggestions";
 
 import { getUniqueId, openEditorAndRevealRange } from "./vscode";
 
@@ -80,19 +72,6 @@ export class VsCodeIdeUtils {
 
   getUniqueId() {
     return getUniqueId();
-  }
-
-  showSuggestion(uri: vscode.Uri, range: Range, suggestion: string) {
-    showSuggestionInEditor(
-      uri,
-      new vscode.Range(
-        range.start.line,
-        range.start.character,
-        range.end.line,
-        range.end.character,
-      ),
-      suggestion,
-    );
   }
 
   async openFile(uri: vscode.Uri, range?: vscode.Range) {
@@ -228,51 +207,8 @@ export class VsCodeIdeUtils {
     }
   }
 
-  showVirtualFile(name: string, contents: string) {
-    vscode.workspace
-      .openTextDocument(
-        vscode.Uri.parse(
-          `${
-            VsCodeExtension.continueVirtualDocumentScheme
-          }:${encodeURIComponent(name)}?${encodeURIComponent(contents)}`,
-        ),
-      )
-      .then((doc) => {
-        vscode.window.showTextDocument(doc, { preview: false });
-      });
-  }
-
-  async getUserSecret(key: string) {
-    // Check if secret already exists in VS Code settings (global)
-    let secret = vscode.workspace.getConfiguration(EXTENSION_NAME).get(key);
-    if (typeof secret !== "undefined" && secret !== null) {
-      return secret;
-    }
-
-    // If not, ask user for secret
-    secret = await vscode.window.showInputBox({
-      prompt: `Either enter secret for ${key} or press enter to try Continue for free.`,
-      password: true,
-    });
-
-    // Add secret to VS Code settings
-    vscode.workspace
-      .getConfiguration(EXTENSION_NAME)
-      .update(key, secret, vscode.ConfigurationTarget.Global);
-
-    return secret;
-  }
-
   // ------------------------------------ //
   // Initiate Request
-
-  acceptRejectSuggestion(accept: boolean, key: SuggestionRanges) {
-    if (accept) {
-      acceptSuggestionCommand(key);
-    } else {
-      rejectSuggestionCommand(key);
-    }
-  }
 
   // ------------------------------------ //
   // Respond to request
@@ -358,139 +294,6 @@ export class VsCodeIdeUtils {
     }
 
     return terminalContents;
-  }
-
-  private async _getThreads(session: vscode.DebugSession) {
-    const threadsResponse = await session.customRequest("threads");
-    const threads = threadsResponse.threads.filter((thread: any) =>
-      threadStopped.get(thread.id),
-    );
-    threads.sort((a: any, b: any) => a.id - b.id);
-    threadsResponse.threads = threads;
-
-    return threadsResponse;
-  }
-
-  async getAvailableThreads(): Promise<Thread[]> {
-    const session = vscode.debug.activeDebugSession;
-    if (!session) {
-      return [];
-    }
-
-    const threadsResponse = await this._getThreads(session);
-    return threadsResponse.threads;
-  }
-
-  async getDebugLocals(threadIndex = 0): Promise<string> {
-    const session = vscode.debug.activeDebugSession;
-
-    if (!session) {
-      vscode.window.showWarningMessage(
-        "No active debug session found, therefore no debug context will be provided for the llm.",
-      );
-      return "";
-    }
-
-    const variablesResponse = await session
-      .customRequest("stackTrace", {
-        threadId: threadIndex,
-        startFrame: 0,
-      })
-      .then((traceResponse) =>
-        session.customRequest("scopes", {
-          frameId: traceResponse.stackFrames[0].id,
-        }),
-      )
-      .then((scopesResponse) =>
-        session.customRequest("variables", {
-          variablesReference: scopesResponse.scopes[0].variablesReference,
-        }),
-      );
-
-    const variableContext = variablesResponse.variables
-      .filter((variable: any) => variable.type !== "global")
-      .reduce(
-        (acc: any, variable: any) =>
-          `${acc}\nname: ${variable.name}, type: ${variable.type}, ` +
-          `value: ${variable.value}`,
-        "",
-      );
-
-    return variableContext;
-  }
-
-  async getTopLevelCallStackSources(
-    threadIndex: number,
-    stackDepth = 3,
-  ): Promise<string[]> {
-    const session = vscode.debug.activeDebugSession;
-    if (!session) {
-      return [];
-    }
-
-    const sourcesPromises = await session
-      .customRequest("stackTrace", {
-        threadId: threadIndex,
-        startFrame: 0,
-      })
-      .then((traceResponse) =>
-        traceResponse.stackFrames
-          .slice(0, stackDepth)
-          .map(async (stackFrame: any) => {
-            const scopeResponse = await session.customRequest("scopes", {
-              frameId: stackFrame.id,
-            });
-
-            const scope = scopeResponse.scopes[0];
-
-            return await this.retrieveSource(
-              scope.source && !_.isEmpty(scope.source) ? scope : stackFrame,
-            );
-          }),
-      );
-
-    return Promise.all(sourcesPromises);
-  }
-
-  private async retrieveSource(sourceContainer: any): Promise<string> {
-    if (!sourceContainer.source) {
-      return "";
-    }
-
-    const sourceRef = sourceContainer.source.sourceReference;
-    if (sourceRef && sourceRef > 0) {
-      // according to the spec, source might be ony available in a debug session
-      // not yet able to test this branch
-      const sourceResponse =
-        await vscode.debug.activeDebugSession?.customRequest("source", {
-          source: sourceContainer.source,
-          sourceReference: sourceRef,
-        });
-      return sourceResponse.content;
-    } else if (sourceContainer.line && sourceContainer.endLine) {
-      return await this.readRangeInFile(
-        sourceContainer.source.path,
-        new vscode.Range(
-          sourceContainer.line - 1, // The line number from scope response starts from 1
-          sourceContainer.column,
-          sourceContainer.endLine - 1,
-          sourceContainer.endColumn,
-        ),
-      );
-    } else if (sourceContainer.line) {
-      // fall back to 5 line of context
-      return await this.readRangeInFile(
-        sourceContainer.source.path,
-        new vscode.Range(
-          Math.max(0, sourceContainer.line - 3),
-          0,
-          sourceContainer.line + 2,
-          0,
-        ),
-      );
-    } else {
-      return "unavailable";
-    }
   }
 
   private async _getRepo(

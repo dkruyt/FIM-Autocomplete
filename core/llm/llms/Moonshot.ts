@@ -1,6 +1,5 @@
-import { streamSse } from "@continuedev/fetch";
+import { streamSse } from "@fim/fetch";
 import { CompletionOptions, LLMOptions } from "../../index.js";
-import { osModelsEditPrompt } from "../templates/edit.js";
 
 import OpenAI from "./OpenAI.js";
 
@@ -16,9 +15,7 @@ class Moonshot extends OpenAI {
   static defaultOptions: Partial<LLMOptions> = {
     apiBase: "https://api.moonshot.cn/v1/",
     model: "moonshot-v1-8k",
-    promptTemplates: {
-      edit: osModelsEditPrompt,
-    },
+    promptTemplates: {},
     useLegacyCompletionsEndpoint: false,
   };
   maxStopWords: number | undefined = 16;

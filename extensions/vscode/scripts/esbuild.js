@@ -10,7 +10,7 @@ const esbuildConfig = {
   entryPoints: ["src/extension.ts"],
   bundle: true,
   outfile: "out/extension.js",
-  external: ["vscode", "esbuild", "./xhr-sync-worker.js"],
+  external: ["vscode", "esbuild"],
   format: "cjs",
   platform: "node",
   sourcemap: flags.includes("--sourcemap"),
@@ -35,6 +35,7 @@ const esbuildConfig = {
             throw new Error(result.errors);
           } else {
             try {
+              fs.mkdirSync("./build", { recursive: true });
               fs.writeFileSync(
                 "./build/meta.json",
                 JSON.stringify(result.metafile, null, 2),

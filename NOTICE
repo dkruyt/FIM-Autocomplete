@@ -1,0 +1,33 @@
+FIM Autocomplete
+Copyright 2026 Dennis Kruyt
+
+This product includes software developed by Continue Dev, Inc.
+Copyright 2023-2026 Continue Dev, Inc.
+
+FIM Autocomplete is a derivative work of Continue
+(https://github.com/continuedev/continue), licensed under the Apache License,
+Version 2.0. It was forked at commit 5522c6f44.
+
+Files in this repository have been substantially modified from the originals, as
+required by section 4(b) of the Apache License. The nature of the modification:
+
+  * Everything other than the autocomplete engine was removed -- the chat and
+    agent product, the React webview UI, codebase indexing and embeddings, the
+    JetBrains and CLI front-ends, MCP, tools, slash commands, rules, Next Edit,
+    the configuration system (config.yaml / the Continue hub / control plane),
+    and all telemetry and analytics.
+  * `core/autocomplete/**` is kept close to upstream so fixes remain
+    cherry-pickable, with two deliberate seams: `CompletionProvider` takes an
+    `AutocompleteConfigProvider` rather than Continue's `ConfigHandler`, and
+    Next Edit is gone from the VS Code inline completion provider.
+  * The completion cache was rewritten as in-memory, dropping the sqlite3
+    dependency.
+  * `packages/fetch`, `packages/llm-info` and `packages/openai-adapters` are
+    vendored copies of the upstream packages of the same names, renamed to the
+    `@fim/*` scope and modified. `packages/config-types` was removed and the one
+    type this fork used from it was inlined into `packages/fetch`.
+  * Product identity (name, settings namespace, command ids, outbound
+    client-identification HTTP headers) was changed throughout.
+
+A copy of the Apache License, Version 2.0 is in the LICENSE file at the root of
+this repository.

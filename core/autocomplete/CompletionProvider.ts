@@ -1,4 +1,3 @@
-import { ConfigHandler } from "../config/ConfigHandler.js";
 import { IDE, ILLM } from "../index.js";
 import OpenAI from "../llm/llms/OpenAI.js";
 import { DEFAULT_AUTOCOMPLETE_OPTS } from "../util/parameters.js";
@@ -13,7 +12,10 @@ import { postprocessCompletion } from "./postprocessing/index.js";
 import { shouldPrefilter } from "./prefiltering/index.js";
 import { getAllSnippetsWithoutRace } from "./snippets/index.js";
 import { renderPromptWithTokenLimit } from "./templating/index.js";
-import { GetLspDefinitionsFunction } from "./types.js";
+import {
+  AutocompleteConfigProvider,
+  GetLspDefinitionsFunction,
+} from "./types.js";
 import { AutocompleteDebouncer } from "./util/AutocompleteDebouncer.js";
 import { AutocompleteLoggingService } from "./util/AutocompleteLoggingService.js";
 import AutocompleteLruCache from "./util/AutocompleteLruCache.js";
@@ -40,7 +42,7 @@ export class CompletionProvider {
   private contextRetrievalService: ContextRetrievalService;
 
   constructor(
-    private readonly configHandler: ConfigHandler,
+    private readonly config: AutocompleteConfigProvider,
     private readonly ide: IDE,
     private readonly _injectedGetLlm: () => Promise<ILLM | undefined>,
     private readonly _onError: (e: any) => void,
@@ -131,20 +133,12 @@ export class CompletionProvider {
     this.loggingService.markDisplayed(completionId, outcome);
   }
 
-  private async _getAutocompleteOptions(llm: ILLM) {
-    const { config } = await this.configHandler.loadConfig();
-    const options = {
+  private _getAutocompleteOptions(llm: ILLM) {
+    return {
       ...DEFAULT_AUTOCOMPLETE_OPTS,
-      ...config?.tabAutocompleteOptions,
+      ...this.config.getOptions(),
       ...llm.autocompleteOptions,
     };
-
-    // Enable static contextualization if defined.
-    if (config?.experimental?.enableStaticContextualization) {
-      options.experimental_enableStaticContextualization = true;
-    }
-
-    return options;
   }
 
   public async provideInlineCompletionItems(
@@ -171,7 +165,7 @@ export class CompletionProvider {
         return undefined;
       }
 
-      const options = await this._getAutocompleteOptions(llm);
+      const options = this._getAutocompleteOptions(llm);
 
       // Debounce
       if (!force) {
@@ -279,8 +273,6 @@ export class CompletionProvider {
         filepath: helper.filepath,
         numLines: completion.split("\n").length,
         completionId: helper.input.completionId,
-        gitRepo: await this.ide.getRepoName(helper.filepath),
-        uniqueId: await this.ide.getUniqueId(),
         timestamp: new Date().toISOString(),
         ...helper.options,
       };

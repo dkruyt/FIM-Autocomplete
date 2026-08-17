@@ -2,10 +2,9 @@ import ignore from "ignore";
 
 import { IDE } from "../..";
 import {
-  getGlobalContinueIgArray,
-  getWorkspaceContinueIgArray,
-} from "../../indexing/continueignore";
-import { getConfigJsonPath } from "../../util/paths";
+  getGlobalFimIgArray,
+  getWorkspaceFimIgArray,
+} from "../../indexing/fimignore";
 import { findUriInDirs } from "../../util/uri";
 import { HelperVars } from "../util/HelperVars";
 
@@ -48,17 +47,12 @@ export async function shouldPrefilter(
     return true;
   }
 
-  // Check whether we're in the continue config.json file
-  if (helper.filepath === getConfigJsonPath()) {
-    return true;
-  }
-
   // Check whether autocomplete is disabled for this file
   const disableInFiles = [
     ...(helper.options.disableInFiles ?? []),
     "*.prompt",
-    ...getGlobalContinueIgArray(),
-    ...(await getWorkspaceContinueIgArray(ide)),
+    ...getGlobalFimIgArray(),
+    ...(await getWorkspaceFimIgArray(ide)),
   ];
   if (await isDisabledForFile(helper.filepath, disableInFiles, ide)) {
     return true;

@@ -137,13 +137,10 @@ codeql
 **/**/.qodana
 **/**/build
 
-continue_server.build
-continue_server.dist
 
 Icon
 Icon?
 
-.continuerc.json
 .aider*
 
 *.notes.md
@@ -151,7 +148,6 @@ notes.md
 *.notes.md
 
 manual-testing-sandbox/.idea/**
-manual-testing-sandbox/.continue/**
 extensions/intellij/.idea/**
 
 **/.idea/workspace.xml
@@ -163,15 +159,12 @@ extensions/intellij/.idea/**
 
 
 extensions/intellij/bin
-extensions/.continue-debug/
 
 *.vsix
 
 # intellij module library files
 *.iml
 
-.continuerules
-**/.continue/assistants/
 keys
 
 .channels_cache.json
@@ -179,3 +172,13 @@ keys
 .copy-status
 .copy-log
 
+
+# Internal working notes, deliberately not published (see GitHub issues instead)
+BACKLOG.md
+.claude/RESUME.md
+
+# Extension Development Host global dir (see .vscode/launch.json)
+.fim-debug/
+
+# Recreated by every test run (see core/test/vitest.global-setup.ts)
+core/test/.fim-test/

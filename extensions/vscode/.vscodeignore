@@ -2,9 +2,14 @@
 .vscode-test/**
 build/**
 src/**
+# Only the icon needs to ship. README images are served from GitHub by absolute
+# URL, since the Marketplace does not resolve relative paths.
+media/icon.svg
+media/demo.gif
+media/ghost-text.png
 .gitignore
-.yarnrc
-vsc-extension-quickstart.md
+.npmrc
+package-lock.json
 **/tsconfig.json
 **/.eslintrc.json
 **/*.map
@@ -12,20 +17,13 @@ vsc-extension-quickstart.md
 **/.env
 **/env
 node_modules/**
-
-**/.pytest_cache
-**/__pycache__
-
-manual-testing-sandbox
-esbuild.js
-importMetaUrl.js
 scripts
-e2e
+vitest.config.ts
 
-server/exe/**
+# out/node_modules holds the runtime deps of the tokenizer workers, which are
+# loaded from disk rather than bundled. They have to ship.
 !out/node_modules/**
-!node_modules/@vscode/ripgrep/bin/rg
 
-# Do not ship esbuild in VSIX
+# ...but esbuild is a build-time dep that got hoisted in there.
 out/node_modules/esbuild/**
 out/node_modules/@esbuild/**

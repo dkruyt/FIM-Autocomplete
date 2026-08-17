@@ -1,0 +1,6 @@
+# Files in this repo that are noise as autocomplete context.
+# Same syntax as .gitignore.
+**/*.scm
+**/dist/
+**/out/
+**/build/

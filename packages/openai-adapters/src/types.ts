@@ -145,9 +145,7 @@ export interface AskSageTool {
 }
 
 export type AskSageToolChoice =
-  | "auto"
-  | "none"
-  | { type: "function"; function: { name: string } };
+  "auto" | "none" | { type: "function"; function: { name: string } };
 
 export interface AskSageToolCall {
   id: string;

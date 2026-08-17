@@ -1,6 +1,5 @@
-import { streamSse } from "@continuedev/fetch";
+import { streamSse } from "@fim/fetch";
 import { Chunk, CompletionOptions, LLMOptions } from "../../index.js";
-import { osModelsEditPrompt } from "../templates/edit.js";
 
 import OpenAI from "./OpenAI.js";
 
@@ -9,9 +8,7 @@ class SiliconFlow extends OpenAI {
   static defaultOptions: Partial<LLMOptions> = {
     apiBase: "https://api.siliconflow.cn/v1/",
     model: "Qwen/Qwen2.5-Coder-32B-Instruct",
-    promptTemplates: {
-      edit: osModelsEditPrompt,
-    },
+    promptTemplates: {},
     useLegacyCompletionsEndpoint: false,
   };
   maxStopWords: number | undefined = 16;

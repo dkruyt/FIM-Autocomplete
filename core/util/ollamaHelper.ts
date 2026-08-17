@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import { exec } from "node:child_process";
-import path from "node:path";
 import { IDE } from "..";
 
 export interface ModelInfo {
@@ -20,6 +19,13 @@ export async function isOllamaInstalled(): Promise<boolean> {
 }
 
 export async function startLocalOllama(ide: IDE): Promise<any> {
+  if (!(await isOllamaInstalled())) {
+    return ide.showToast(
+      "info",
+      "Ollama does not appear to be installed. See https://ollama.com/download.",
+    );
+  }
+
   let startCommand: string | undefined;
 
   switch (process.platform) {
@@ -32,16 +38,11 @@ export async function startLocalOllama(ide: IDE): Promise<any> {
       break;
 
     default: //Linux...
-      const start_script_path = path.resolve(__dirname, "./start_ollama.sh");
-      if (await ide.fileExists(`file:/${start_script_path}`)) {
-        startCommand = `set -e && chmod +x ${start_script_path} && ${start_script_path}\n`;
-        console.log(`Ollama Linux startup script at : ${start_script_path}`);
-      } else {
-        return ide.showToast(
-          "error",
-          `Cannot start Ollama: could not find ${start_script_path}!`,
-        );
-      }
+      // Just run the server in a terminal. Upstream shipped a helper script
+      // that would `sudo systemctl start ollama`; installing and managing the
+      // service is the user's business, not an editor extension's.
+      startCommand = "ollama serve\n";
+      break;
   }
   if (startCommand) {
     return ide.runCommand(startCommand, {

@@ -1,4 +1,4 @@
-import { dedent } from "../../../util";
+import { dedent } from "./dedent";
 
 import { AutocompleteFileringTestInput } from "./util";
 

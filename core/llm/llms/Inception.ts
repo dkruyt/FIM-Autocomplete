@@ -1,9 +1,12 @@
-import { streamSse } from "@continuedev/fetch";
+import { streamSse } from "@fim/fetch";
 import { ChatMessage, CompletionOptions, LLMOptions } from "../../index.js";
 
-import { ChatCompletionCreateParams } from "@continuedev/openai-adapters";
-import { APPLY_UNIQUE_TOKEN } from "../../edit/constants.js";
-import { UNIQUE_TOKEN } from "../../nextEdit/constants.js";
+import { ChatCompletionCreateParams } from "@fim/openai-adapters";
+// Sentinel tokens Continue appended to prompts to mark apply/next-edit
+// requests. Those modes don't exist in this fork, but Inception still strips
+// the tokens defensively, so the values are kept here.
+const APPLY_UNIQUE_TOKEN = "<|!@#IS_APPLY!@#|>";
+const UNIQUE_TOKEN = "<|!@#IS_NEXT_EDIT!@#|>";
 import OpenAI from "./OpenAI.js";
 
 /**

@@ -1,10 +1,9 @@
 import { LLMOptions } from "../../index.js";
-import { osModelsEditPrompt } from "../templates/edit.js";
 
 import OpenAI from "./OpenAI.js";
 
-// Get Continue version from package.json at build time
-const CONTINUE_VERSION = process.env.npm_package_version || "unknown";
+// Extension version, resolved from package.json at build time
+const CLIENT_VERSION = process.env.npm_package_version || "unknown";
 
 /**
  * ClawRouter LLM Provider
@@ -31,21 +30,18 @@ class ClawRouter extends OpenAI {
   static defaultOptions: Partial<LLMOptions> = {
     apiBase: "http://localhost:1337/v1/",
     model: "blockrun/auto",
-    promptTemplates: {
-      edit: osModelsEditPrompt,
-    },
+    promptTemplates: {},
     useLegacyCompletionsEndpoint: false,
   };
 
   /**
-   * Override headers to include Continue-specific User-Agent
-   * This helps ClawRouter track integration usage and optimize accordingly
+   * Identify ourselves so ClawRouter can track integration usage.
    */
   protected _getHeaders() {
     return {
       ...super._getHeaders(),
-      "User-Agent": `Continue/${CONTINUE_VERSION}`,
-      "X-Continue-Provider": "clawrouter",
+      "User-Agent": `FimAutocomplete/${CLIENT_VERSION}`,
+      "X-Client-Provider": "clawrouter",
     };
   }
 }

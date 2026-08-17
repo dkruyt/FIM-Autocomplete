@@ -14,20 +14,11 @@ class LoggerClass {
           const metaStr = Object.keys(meta).length
             ? ` ${JSON.stringify(meta)}`
             : "";
-          return `[@continuedev] ${level}: ${message}${metaStr}`;
+          return `[fim] ${level}: ${message}${metaStr}`;
         }),
       ),
       transports: [
-        // Write all logs with importance level of `info` or higher to `info.log`
-        ...(process.env.NODE_ENV === "test"
-          ? [
-              new winston.transports.File({
-                filename: "e2e.log",
-                level: "info",
-              }),
-            ]
-          : []),
-        // Use stderr to avoid corrupting IPC stdout stream in the binary
+        // stderr only: stdout is not ours to write to.
         new winston.transports.Console({
           stderrLevels: ["error", "warn", "info", "debug"],
         }),

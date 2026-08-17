@@ -1,15 +1,12 @@
-import { ModelRole } from "@continuedev/config-yaml";
-import { fetchwithRequestOptions } from "@continuedev/fetch";
-import { findLlmInfo } from "@continuedev/llm-info";
+import { fetchwithRequestOptions } from "@fim/fetch";
+import { findLlmInfo } from "@fim/llm-info";
 import {
   BaseLlmApi,
   ChatCompletionCreateParams,
   constructLlmApi,
-} from "@continuedev/openai-adapters";
+} from "@fim/openai-adapters";
 import Handlebars from "handlebars";
 
-import { DevDataSqliteDb } from "../data/devdataSqlite.js";
-import { DataLogger } from "../data/log.js";
 import {
   CacheBehavior,
   ChatMessage,
@@ -23,6 +20,7 @@ import {
   MessageOption,
   ModelCapability,
   ModelInstaller,
+  ModelRole,
   PromptLog,
   PromptTemplate,
   RequestOptions,
@@ -66,7 +64,6 @@ import {
   toCompleteBody,
   toFimBody,
 } from "./openaiTypeConverters.js";
-import { applyToolOverrides } from "../tools/applyToolOverrides.js";
 
 export class LLMError extends Error {
   constructor(
@@ -160,7 +157,6 @@ export abstract class BaseLLM implements ILLM {
   llmRequestHook?: (model: string, prompt: string) => any;
   apiKey?: string;
 
-  // continueProperties
   apiKeyLocation?: string;
   envSecretLocations?: Record<string, string>;
   apiBase?: string;
@@ -215,7 +211,7 @@ export abstract class BaseLLM implements ILLM {
     };
 
     this.model = options.model;
-    // Use @continuedev/llm-info package to autodetect certain parameters
+    // Use @fim/llm-info package to autodetect certain parameters
     const llmInfo = findLlmInfo(this.model, this.underlyingProviderName);
 
     const templateType =
@@ -259,7 +255,6 @@ export abstract class BaseLLM implements ILLM {
     this.llmRequestHook = options.llmRequestHook;
     this.apiKey = options.apiKey;
 
-    // continueProperties
     this.apiKeyLocation = options.apiKeyLocation;
     this.envSecretLocations = options.envSecretLocations;
     this.apiBase = options.apiBase;
@@ -349,23 +344,6 @@ export abstract class BaseLLM implements ILLM {
     let promptTokens = this.countTokens(prompt);
     let generatedTokens = this.countTokens(completion);
     let thinkingTokens = thinking ? this.countTokens(thinking) : 0;
-
-    void DevDataSqliteDb.logTokensGenerated(
-      model,
-      this.providerName,
-      promptTokens,
-      generatedTokens,
-    );
-
-    void DataLogger.getInstance().logDevData({
-      name: "tokensGenerated",
-      data: {
-        model: model,
-        provider: this.underlyingProviderName,
-        promptTokens: promptTokens,
-        generatedTokens: generatedTokens,
-      },
-    });
 
     if (typeof error === "undefined") {
       interaction?.logItem({
@@ -1100,27 +1078,8 @@ export abstract class BaseLLM implements ILLM {
   ): AsyncGenerator<ChatMessage, PromptLog> {
     this.lastRequestId = undefined;
 
-    // Apply per-model tool overrides if configured
-    let effectiveTools = options.tools;
-    if (this.toolOverrides?.length && options.tools?.length) {
-      const { tools: overriddenTools, errors } = applyToolOverrides(
-        options.tools,
-        this.toolOverrides,
-      );
-      effectiveTools = overriddenTools;
-      // Log any warnings for unknown tool names
-      for (const error of errors) {
-        if (!error.fatal) {
-          console.warn(`Tool override warning: ${error.message}`);
-        }
-      }
-    }
-
-    // Use effectiveTools for the rest of this method
-    const optionsWithOverrides = { ...options, tools: effectiveTools };
-
     let { completionOptions, logEnabled } =
-      this._parseCompletionOptions(optionsWithOverrides);
+      this._parseCompletionOptions(options);
     const interaction = logEnabled
       ? this.logger?.createInteractionLog()
       : undefined;
@@ -1138,7 +1097,7 @@ export abstract class BaseLLM implements ILLM {
         knownContextLength: this._contextLength,
         maxTokens: completionOptions.maxTokens ?? DEFAULT_MAX_TOKENS,
         supportsImages: this.supportsImages(),
-        tools: optionsWithOverrides.tools,
+        tools: options.tools,
       });
 
       messages = compiledChatMessages;

@@ -82,7 +82,7 @@ function createAiSdkApiForProvider(
 }
 
 export function constructLlmApi(config: LLMConfig): BaseLlmApi | undefined {
-  if (process.env.CONTINUE_USE_AI_SDK) {
+  if (process.env.FIM_USE_AI_SDK) {
     if (["openai", "anthropic"].includes(config.provider)) {
       const aiSdkApi = createAiSdkApiForProvider(
         config as LLMConfig & { model?: string },

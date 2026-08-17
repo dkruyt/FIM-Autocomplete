@@ -1,4 +1,4 @@
-import { RequestOptions } from "@continuedev/config-types";
+import { RequestOptions } from "./types.js";
 
 /**
  * Gets the proxy settings from environment variables

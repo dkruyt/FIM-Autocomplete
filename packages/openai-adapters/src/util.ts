@@ -1,5 +1,8 @@
-import { RequestOptions } from "@continuedev/config-types";
-import { fetchwithRequestOptions, patchedFetch } from "@continuedev/fetch";
+import {
+  RequestOptions,
+  fetchwithRequestOptions,
+  patchedFetch,
+} from "@fim/fetch";
 import {
   ChatCompletionChunk,
   CompletionUsage,

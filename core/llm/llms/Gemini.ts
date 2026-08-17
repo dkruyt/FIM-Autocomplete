@@ -1,4 +1,4 @@
-import { streamResponse } from "@continuedev/fetch";
+import { streamResponse } from "@fim/fetch";
 import { v4 as uuidv4 } from "uuid";
 import {
   AssistantChatMessage,
@@ -21,7 +21,7 @@ import {
   GeminiChatResponse,
   GeminiGenerationConfig,
   GeminiToolFunctionDeclaration,
-  convertContinueToolToGeminiFunction,
+  convertToolToGeminiFunction,
   mergeConsecutiveGeminiMessages,
 } from "./gemini-types";
 
@@ -145,8 +145,7 @@ class Gemini extends BaseLLM {
         const contentArray: Array<MessagePart> =
           userMessage.content as Array<MessagePart>;
         const textPart = contentArray.find((part) => part.type === "text") as
-          | TextMessagePart
-          | undefined;
+          TextMessagePart | undefined;
 
         if (textPart) {
           textPart.text = prefix + textPart.text;
@@ -203,7 +202,7 @@ class Gemini extends BaseLLM {
     }
   }
 
-  continuePartToGeminiPart(part: MessagePart): GeminiChatContentPart {
+  toGeminiPart(part: MessagePart): GeminiChatContentPart {
     if (part.type === "text") {
       return {
         text: part.text,
@@ -283,7 +282,7 @@ class Gemini extends BaseLLM {
               parts:
                 typeof msg.content === "string"
                   ? [{ text: msg.content }]
-                  : msg.content.map(this.continuePartToGeminiPart),
+                  : msg.content.map(this.toGeminiPart),
             };
 
             if (msg.toolCalls && msg.toolCalls.length) {
@@ -323,7 +322,7 @@ class Gemini extends BaseLLM {
             parts:
               typeof msg.content === "string"
                 ? [{ text: msg.content }]
-                : msg.content.map(this.continuePartToGeminiPart),
+                : msg.content.map(this.toGeminiPart),
           };
         }),
     };
@@ -348,7 +347,7 @@ class Gemini extends BaseLLM {
         const functions: GeminiToolFunctionDeclaration[] = [];
         options.tools.forEach((tool) => {
           try {
-            functions.push(convertContinueToolToGeminiFunction(tool));
+            functions.push(convertToolToGeminiFunction(tool));
           } catch (e) {
             console.warn(
               `Failed to convert tool to gemini function definition. Skipping: ${JSON.stringify(tool, null, 2)}`,

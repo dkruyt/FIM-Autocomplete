@@ -23,15 +23,15 @@ describe("ClawRouter", () => {
     expect(clawRouter["supportsReasoningDetailsField"]).toBe(true);
   });
 
-  it("should include Continue User-Agent header", () => {
+  it("should identify itself in the User-Agent header", () => {
     const clawRouter = new ClawRouter({
       model: "blockrun/auto",
     });
 
     const headers = clawRouter["_getHeaders"]();
 
-    expect(headers["User-Agent"]).toMatch(/^Continue\//);
-    expect(headers["X-Continue-Provider"]).toBe("clawrouter");
+    expect(headers["User-Agent"]).toMatch(/^FimAutocomplete\//);
+    expect(headers["X-Client-Provider"]).toBe("clawrouter");
   });
 
   it("should accept all routing profiles", () => {

@@ -4,6 +4,7 @@ import {
   AutocompleteSnippetType,
 } from "core/autocomplete/snippets/types";
 import { isSecurityConcern } from "core/indexing/ignore";
+import { OUTPUT_CHANNEL_URI_PREFIX } from "core/util/constants";
 import { LRUCache } from "lru-cache";
 import * as vscode from "vscode";
 
@@ -102,11 +103,9 @@ export class RecentlyVisitedRangesService {
         (s) =>
           !currentFilepath ||
           (s.filepath !== currentFilepath &&
-            // Exclude Continue's own output as it makes it super-hard for users to test the autocomplete feature
-            // while looking at the prompts in the Continue's output
-            !s.filepath.startsWith(
-              "output:extension-output-Continue.continue",
-            )),
+            // Exclude our own output channel: reading back the prompts we just
+            // logged would feed them straight into the next prompt.
+            !s.filepath.startsWith(OUTPUT_CHANNEL_URI_PREFIX)),
       )
       .sort((a, b) => b.timestamp - a.timestamp)
       .map(({ timestamp, ...snippet }) => snippet);

@@ -1,22 +1,15 @@
-## Description
+## What this changes
 
-[ What changed? Feel free to be brief. ]
+<!-- One or two sentences. If it fixes an issue, "Fixes #123". -->
 
-## AI Code Review
+## How it was verified
 
-- **Team members only**: AI review runs automatically when PR is opened or marked ready for review
-- Team members can also trigger a review by commenting `@continue-review`
+<!--
+CI runs typecheck, tests and the bundle. Say what you did beyond that —
+especially anything you exercised against a real model, since nothing
+automated covers completion quality.
+-->
 
-## Checklist
-
-- [] I've read the [contributing guide](https://github.com/continuedev/continue/blob/main/CONTRIBUTING.md)
-- [] The relevant docs, if any, have been updated or created
-- [] The relevant tests, if any, have been updated or created
-
-## Screen recording or screenshot
-
-[ When applicable, please include a short screen recording or screenshot - this makes it much easier for us as contributors to review and understand your changes. See [this PR](https://github.com/continuedev/continue/pull/6455) as a good example. ]
-
-## Tests
-
-[ What tests were added or updated to ensure the changes work as expected? ]
+- [ ] `npm run tsc:check` in `extensions/vscode`
+- [ ] `npm test` in `core` and `extensions/vscode`
+- [ ] Tried it in an Extension Development Host (F5)

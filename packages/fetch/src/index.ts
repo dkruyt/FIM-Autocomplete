@@ -17,3 +17,5 @@ export {
   streamSse,
   toAsyncIterable,
 };
+
+export type { ClientCertificateOptions, RequestOptions } from "./types.js";

@@ -545,7 +545,7 @@ class Bedrock extends BaseLLM {
     }
   }
 
-  // Converts Continue message content (string/parts) to Bedrock ContentBlock format.
+  // Converts our message content (string/parts) to Bedrock ContentBlock format.
   // Unsupported/problematic image formats are skipped with a warning.
   private _convertMessageContentToBlocks(
     content: MessageContent,

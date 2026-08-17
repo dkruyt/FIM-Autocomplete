@@ -1,6 +1,5 @@
-import { streamSse } from "@continuedev/fetch";
+import { streamSse } from "@fim/fetch";
 import { CompletionOptions, LLMOptions } from "../../index.js";
-import { osModelsEditPrompt } from "../templates/edit.js";
 
 import OpenAI from "./OpenAI.js";
 
@@ -9,9 +8,7 @@ class LlamaStack extends OpenAI {
   static defaultOptions: Partial<LLMOptions> = {
     apiBase: "http://localhost:8321/v1/openai/v1/",
     model: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-    promptTemplates: {
-      edit: osModelsEditPrompt,
-    },
+    promptTemplates: {},
     useLegacyCompletionsEndpoint: false,
   };
   maxStopWords: number | undefined = 16;

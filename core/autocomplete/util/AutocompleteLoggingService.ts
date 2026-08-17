@@ -1,7 +1,4 @@
-import { DataLogger } from "../../data/log";
 import { COUNT_COMPLETION_REJECTED_AFTER } from "../../util/parameters";
-
-import { getUriFileExtension } from "../../util/uri";
 
 import { AutocompleteOutcome } from "./types";
 
@@ -39,7 +36,6 @@ export class AutocompleteLoggingService {
     if (this._outcomes.has(completionId)) {
       const outcome = this._outcomes.get(completionId)!;
       outcome.accepted = true;
-      this.logAutocompleteOutcome(outcome);
       this._outcomes.delete(completionId);
       return outcome;
     }
@@ -60,7 +56,6 @@ export class AutocompleteLoggingService {
     const logRejectionTimeout = setTimeout(() => {
       // Wait 10 seconds, then assume it wasn't accepted
       outcome.accepted = false;
-      this.logAutocompleteOutcome(outcome);
       this._logRejectionTimeouts.delete(completionId);
     }, COUNT_COMPLETION_REJECTED_AFTER);
     this._outcomes.set(completionId, outcome);
@@ -92,33 +87,6 @@ export class AutocompleteLoggingService {
     this._lastDisplayedCompletion = {
       id: completionId,
       displayedAt: now,
-    };
-  }
-
-  private logAutocompleteOutcome(outcome: AutocompleteOutcome) {
-    void DataLogger.getInstance().logDevData({
-      name: "autocomplete",
-      data: {
-        ...outcome,
-        useFileSuffix: true, // from outdated schema
-      },
-    });
-
-    const { prompt, completion, prefix, suffix, ...restOfOutcome } = outcome;
-    const toLog = {
-      accepted: restOfOutcome.accepted,
-      cacheHit: restOfOutcome.cacheHit,
-      completionId: restOfOutcome.completionId,
-      completionOptions: restOfOutcome.completionOptions,
-      debounceDelay: restOfOutcome.debounceDelay,
-      fileExtension: getUriFileExtension(restOfOutcome.filepath),
-      maxPromptTokens: restOfOutcome.maxPromptTokens,
-      modelName: restOfOutcome.modelName,
-      modelProvider: restOfOutcome.modelProvider,
-      multilineCompletions: restOfOutcome.multilineCompletions,
-      time: restOfOutcome.time,
-      useRecentlyEdited: restOfOutcome.useRecentlyEdited,
-      numLines: restOfOutcome.numLines,
     };
   }
 }

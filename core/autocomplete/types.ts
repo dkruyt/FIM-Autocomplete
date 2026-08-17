@@ -1,6 +1,15 @@
-import { IDE, RangeInFileWithContents } from "../index";
+import { IDE, RangeInFileWithContents, TabAutocompleteOptions } from "../index";
 import { AutocompleteLanguageInfo } from "./constants/AutocompleteLanguageInfo";
 import { AutocompleteCodeSnippet } from "./snippets/types";
+
+/**
+ * Everything the completion pipeline needs from the host's configuration.
+ * The IDE layer supplies the implementation, so core stays agnostic about
+ * where the settings actually live.
+ */
+export interface AutocompleteConfigProvider {
+  getOptions(): TabAutocompleteOptions;
+}
 
 /**
  * @deprecated This type should be removed in the future or renamed.

@@ -1,63 +1,149 @@
-<h1 align="center">Continue</h1>
+# FIM Autocomplete
 
-<p align="center">Pioneering open-source coding agent</p>
+Inline code completion (fill-in-the-middle) for VS Code, backed by any LLM
+provider you point it at. No chat, no agent, no codebase indexing — just
+autocomplete.
 
-<div align="center">
+This is a fork of [Continue](https://github.com/continuedev/continue) reduced to
+its autocomplete engine. See [NOTICE](./NOTICE) for what changed.
 
-<a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" /></a>
-<a href="https://docs.continue.dev"><img src="https://img.shields.io/badge/Docs-docs.continue.dev-blue" /></a>
-<a href="https://github.com/continuedev/continue/releases"><img src="https://img.shields.io/badge/Changelog-GitHub_Releases-blue" /></a>
+![Ghost text appearing as you type, accepted with Tab](extensions/vscode/media/demo.gif)
 
-</div>
+## Install
 
-<p align="center">
-  <img src="media/github-readme.png" alt="Banner" />
-</p>
+Grab the `.vsix` from the [latest release](https://github.com/dkruyt/FIM-Autocomplete/releases)
+and install it:
 
-## What is Continue?
+```bash
+code --install-extension fim-autocomplete-0.1.0.vsix
+```
 
-> _Note: The `continuedev/continue` repository is no longer actively maintained and is read-only for all users._
+Then configure a model — nothing happens until you do.
 
-Continue is a coding agent available as a [CLI](#cli), [VS Code extension](#vs-code), and [JetBrains plugin](#jetbrains).
+## Configuring a model
 
-## Documentation
+The quickest path is the guided picker: **FIM: Select Model** in the command
+palette, or the `FIM` status bar item → **Select model…**. It's built from native
+QuickPicks (this extension has no webview) and queries the provider for its
+available models where that's supported.
 
-To learn how to configure Continue, how it works, and how to customize it, check out the [Continue Docs](https://docs.continue.dev).
+Or set it by hand — `provider` and `model` are the only required fields:
 
-## Final 2.0.0 Release
+```jsonc
+{
+  "fim.model": {
+    "provider": "ollama",
+    "model": "qwen2.5-coder:1.5b",
+    "apiBase": "http://localhost:11434",
+  },
+}
+```
 
-We polished Continue and did a final 2.0.0 release of the VS Code extension, CLI, and JetBrains plugin.
+Models with a native fill-in-the-middle endpoint give the best results —
+Codestral, DeepSeek Coder, Qwen Coder, StarCoder, CodeGemma, Mellum. Hosted
+example:
 
-This included removing anonymous telemetry, pulling out authentication, squashing bugs, and more.
+```jsonc
+{
+  "fim.model": {
+    "provider": "mistral",
+    "model": "codestral-latest",
+    "apiKey": "...",
+  },
+}
+```
 
-### VS Code
+> `apiKey` lives in `settings.json` in plaintext and will sync via Settings Sync.
 
-[![VS Code Marketplace](https://img.shields.io/badge/VS_Code_Marketplace-007ACC?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=Continue.continue) [![OpenVSX Registry](https://img.shields.io/badge/OpenVSX_Registry-C160EF?logo=eclipseide&logoColor=white)](https://open-vsx.org/extension/Continue/continue) [![View source](https://img.shields.io/badge/View_source-181717?logo=github&logoColor=white)](extensions/vscode)
+The FIM prompt template is autodetected from the model name. Override it with
+`fim.model.template` (a Handlebars string with `{{{prefix}}}` / `{{{suffix}}}` /
+`{{{filename}}}` / `{{{language}}}` / `{{{reponame}}}`) when autodetection picks
+wrong — for instance to drive an instruct-tuned model that doesn't understand raw
+FIM sentinel tokens.
 
-### CLI
+See the full option list under **Settings → Extensions → FIM Autocomplete**, or
+search `fim.` in `settings.json`.
 
-[![npm](https://img.shields.io/badge/npm-CB3837?logo=npm&logoColor=white)](https://www.npmjs.com/package/@continuedev/cli) [![View source](https://img.shields.io/badge/View_source-181717?logo=github&logoColor=white)](extensions/cli)
+## Using it
 
-### JetBrains
+Type, pause, and the suggestion shows up as grey ghost text after the cursor.
 
-> _Note: We recommend using the Continue CLI instead of the JetBrains plugin._
+| To do this                   | Press                           |
+| ---------------------------- | ------------------------------- |
+| Accept the whole suggestion  | `Tab`                           |
+| Accept just the next word    | `cmd+→` / `ctrl+→`              |
+| Dismiss it                   | `Esc`                           |
+| Ask for one right now        | `cmd+alt+\` / `ctrl+alt+\`      |
+| Turn autocomplete off and on | `cmd+k cmd+a` / `ctrl+k ctrl+a` |
 
-[![GitHub Releases](https://img.shields.io/badge/GitHub_Releases-181717?logo=github&logoColor=white)](https://github.com/continuedev/continue/releases) [![View source](https://img.shields.io/badge/View_source-181717?logo=github&logoColor=white)](extensions/intellij)
+The `FIM` status bar item shows state (`$(check)` idle, `$(loading~spin)` waiting
+on the model, `$(circle-slash)` disabled, `$(debug-pause)` paused on battery) and
+opens a menu with **Select model…** and a link to all settings.
 
-## Contributors
+If nothing appears, the usual cause is a model that isn't a fill-in-the-middle
+code model. The
+[extension README](extensions/vscode/README.md#when-nothing-appears) has the full
+troubleshooting list, plus notes on truncated suggestions and which files are
+excluded by default.
 
-Thank you to the entire Continue community for helping us create a pioneering coding agent.
+## How a completion is built
 
-What we built together pushed the boundaries of what AI developer tooling could be.
+Beyond the text around the cursor, the prompt draws on:
 
-We hope this codebase continues to serve as a foundation for others.
+- definitions of imported symbols (tree-sitter `import-queries` + LSP go-to-definition)
+- the enclosing class/function signature and the types it references (`root-path-context`)
+- recently edited ranges, recently visited ranges, recently opened files
+- optionally the clipboard, and optionally static analysis of types/headers
 
-## Code friends
+Most sources can be toggled via `fim.*` settings, and all of them are raced
+against a per-source timeout so a slow source can't stall a keystroke. This is
+the part of Continue worth keeping over a naive FIM plugin.
 
-<a href="https://github.com/continuedev/continue/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=continuedev/continue&max=500" />
-</a>
+Upstream also had a git-diff source, but it was disabled there and remains
+disabled here — a diff is usually large enough to crowd everything else out of
+the token budget.
+
+## Repository layout
+
+```
+core/                     the completion engine (provider-agnostic)
+  autocomplete/           prefilter → debounce → snippets → template → stream → postprocess
+    context/              cross-file context: imports, root-path, static analysis
+    snippets/             assembles all context sources with per-source timeouts
+    templating/           16 model-specific FIM templates + token budgeting
+    filtering/            bracket matching, stream transforms, stop conditions
+    postprocessing/       final accept/reject of a candidate completion
+  llm/                    BaseLLM + 61 providers, tokenizers, token counting
+  util/                   uri/path helpers, tree-sitter loading, LRU caches
+  indexing/               only ignore.ts, fimignore.ts, chunk/code.ts
+  vendor/tree-sitter.wasm the tree-sitter runtime
+
+extensions/vscode/        the VS Code extension
+  src/autocomplete/       InlineCompletionItemProvider, status bar, LSP bridge, trackers
+  src/config/FimConfig.ts reads `fim.*` settings and builds the ILLM
+  src/VsCodeIde.ts        the IDE interface implementation
+  tree-sitter/            .scm queries for the context sources
+
+packages/                 vendored sub-packages, consumed as file: deps
+  fetch, llm-info, openai-adapters
+```
+
+## Development
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md). Short version: install `packages/`
+first (order matters), then `core`, then the extension; press <kbd>F5</kbd>.
+
+## Relationship to upstream
+
+`core/autocomplete/**` is deliberately left close to upstream so autocomplete
+fixes can still be cherry-picked. Two seams will conflict on any upstream change
+to the completion provider, and are kept small on purpose:
+
+- `CompletionProvider` takes an `AutocompleteConfigProvider` instead of
+  Continue's `ConfigHandler`
+- Next Edit has been removed from the VS Code inline completion provider
 
 ## License
 
-Apache 2.0 © 2023-2026 Continue Dev, Inc.
+Apache 2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+Original work © 2023-2026 Continue Dev, Inc.

@@ -27,14 +27,13 @@ export class ClawRouterApi extends OpenAIApi {
   }
 
   /**
-   * Override headers to include Continue-specific User-Agent
-   * This helps ClawRouter track integration usage and optimize accordingly
+   * Identify ourselves so ClawRouter can track integration usage.
    */
   protected override getHeaders(): Record<string, string> {
     return {
       ...super.getHeaders(),
-      "User-Agent": "Continue/IDE",
-      "X-Continue-Provider": "clawrouter",
+      "User-Agent": "FimAutocomplete/IDE",
+      "X-Client-Provider": "clawrouter",
     };
   }
 }

@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import MockLLM from "../../../llm/llms/Mock";
-import { testConfigHandler, testIde } from "../../../test/fixtures";
+import { testConfig, testIde } from "../../../test/fixtures";
 import { joinPathsToUri } from "../../../util/uri";
 import { CompletionProvider } from "../../CompletionProvider";
 import { AutocompleteInput } from "../../util/types";
@@ -34,7 +34,7 @@ export async function testAutocompleteFiltering(
   });
   llm.completion = test.llmOutput;
   const ide = testIde;
-  const configHandler = testConfigHandler;
+  const config = testConfig();
 
   // Create a real file
   const [workspaceDir] = await ide.getWorkspaceDirs();
@@ -43,7 +43,7 @@ export async function testAutocompleteFiltering(
 
   // Prepare completion input and provider
   const completionProvider = new CompletionProvider(
-    configHandler,
+    config,
     ide,
     async () => llm,
     () => {},

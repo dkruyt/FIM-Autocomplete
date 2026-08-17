@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      # There are no npm workspaces here. packages/ are consumed as `file:`
+      # dependencies via their dist/, so each has to be installed and compiled
+      # before whatever depends on it. openai-adapters depends on fetch.
+      - name: Install and build packages/
+        run: |
+          for d in fetch llm-info openai-adapters; do
+            echo "::group::packages/$d"
+            (cd "packages/$d" && npm ci --no-audit --no-fund && npm run build)
+            echo "::endgroup::"
+          done
+
+      - name: Install core
+        run: cd core && npm ci --no-audit --no-fund
+
+      - name: Install extension
+        run: cd extensions/vscode && npm ci --no-audit --no-fund
+
+      # Covers core/ too: the extension's tsconfig includes it.
+      - name: Typecheck
+        run: cd extensions/vscode && npm run tsc:check
+
+      - name: Test core
+        run: cd core && npm test
+
+      - name: Test extension
+        run: cd extensions/vscode && npm test
+
+      - name: Test packages/
+        run: |
+          for d in fetch openai-adapters; do
+            echo "::group::packages/$d"
+            (cd "packages/$d" && npm test)
+            echo "::endgroup::"
+          done
+
+      # prepackage.js wipes out/ before copying the runtime assets in, so it
+      # has to run before the bundle lands there.
+      - name: Package VSIX
+        env:
+          SKIP_INSTALLS: "true"
+        run: |
+          cd extensions/vscode
+          node scripts/prepackage.js
+          npm run esbuild
+          npm run package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fim-autocomplete-vsix
+          path: extensions/vscode/build/*.vsix
+          if-no-files-found: error

@@ -4,6 +4,7 @@ import {
   AutocompleteSnippet,
   AutocompleteSnippetType,
 } from "../snippets/types";
+import { OUTPUT_CHANNEL_URI_PREFIX } from "../../util/constants";
 
 const MAX_CLIPBOARD_AGE = 5 * 60 * 1000;
 
@@ -28,7 +29,7 @@ export const isValidSnippet = (snippet: AutocompleteSnippet): boolean => {
 
   if (
     (snippet as AutocompleteCodeSnippet).filepath?.startsWith(
-      "output:extension-output-Continue.continue",
+      OUTPUT_CHANNEL_URI_PREFIX,
     )
   ) {
     return false;

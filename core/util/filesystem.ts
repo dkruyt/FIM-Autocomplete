@@ -7,7 +7,6 @@ import {
   FileType,
   IDE,
   IdeInfo,
-  IdeSettings,
   IndexTag,
   Location,
   Problem,
@@ -15,7 +14,6 @@ import {
   RangeInFile,
   SignatureHelp,
   TerminalOptions,
-  Thread,
   ToastType,
 } from "../index.js";
 
@@ -67,16 +65,6 @@ class FileSystemIde implements IDE {
 
   isWorkspaceRemote(): Promise<boolean> {
     return Promise.resolve(false);
-  }
-
-  async getIdeSettings(): Promise<IdeSettings> {
-    return {
-      remoteConfigServerUrl: undefined,
-      remoteConfigSyncPeriod: 60,
-      userToken: "",
-      continueTestEnvironment: "none",
-      pauseCodebaseIndexOnStart: false,
-    };
   }
 
   async getFileStats(fileUris: string[]): Promise<FileStatsMap> {
@@ -145,10 +133,6 @@ class FileSystemIde implements IDE {
     return Promise.resolve("");
   }
 
-  isTelemetryEnabled(): Promise<boolean> {
-    return Promise.resolve(true);
-  }
-
   getUniqueId(): Promise<string> {
     return Promise.resolve("NOT_UNIQUE");
   }
@@ -163,21 +147,6 @@ class FileSystemIde implements IDE {
 
   getTerminalContents(): Promise<string> {
     return Promise.resolve("");
-  }
-
-  async getDebugLocals(threadIndex: number): Promise<string> {
-    return Promise.resolve("");
-  }
-
-  async getTopLevelCallStackSources(
-    threadIndex: number,
-    stackDepth: number,
-  ): Promise<string[]> {
-    return Promise.resolve([]);
-  }
-
-  async getAvailableThreads(): Promise<Thread[]> {
-    return Promise.resolve([]);
   }
 
   showLines(
@@ -214,10 +183,6 @@ class FileSystemIde implements IDE {
         resolve();
       });
     });
-  }
-
-  showVirtualFile(title: string, contents: string): Promise<void> {
-    return Promise.resolve();
   }
 
   openFile(path: string): Promise<void> {
@@ -262,17 +227,6 @@ class FileSystemIde implements IDE {
 
   getPinnedFiles(): Promise<string[]> {
     return Promise.resolve([]);
-  }
-
-  async getSearchResults(query: string, maxResults?: number): Promise<string> {
-    return "";
-  }
-
-  async getFileResults(
-    pattern: string,
-    maxResults?: number,
-  ): Promise<string[]> {
-    return [];
   }
 
   async getProblems(fileUri?: string | undefined): Promise<Problem[]> {

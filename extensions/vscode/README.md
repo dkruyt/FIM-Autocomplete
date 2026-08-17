@@ -1,54 +1,171 @@
-<div align="center">
+# FIM Autocomplete
 
-![Continue logo](media/readme.png)
+Inline code completion (fill-in-the-middle) for VS Code, backed by any LLM
+provider you point it at. No chat, no agent, no codebase indexing — just
+autocomplete.
 
-<div align="center">
+This is a fork of [Continue](https://github.com/continuedev/continue) reduced to
+its autocomplete engine. Source and issues:
+[dkruyt/FIM-Autocomplete](https://github.com/dkruyt/FIM-Autocomplete).
 
-<a target="_blank" href="https://opensource.org/licenses/Apache-2.0" style="background:none">
-    <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" style="height: 22px;" />
-</a>
-<a target="_blank" href="https://docs.continue.dev" style="background:none">
-    <img src="https://img.shields.io/badge/Continue-docs-%23BE1B55.svg?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNiAyNCIgZmlsbD0id2hpdGUiPgogIDxwYXRoIGQ9Ik0yMC41Mjg2IDMuMjY4MTFMMTkuMTUxMiA1LjY1Njk0TDIyLjYzMjggMTEuNjg0OUMyMi42NTgyIDExLjczMDYgMjIuNjczNSAxMS43ODY2IDIyLjY3MzUgMTEuODM3NEMyMi42NzM1IDExLjg4ODIgMjIuNjU4MiAxMS45NDQxIDIyLjYzMjggMTEuOTg5OUwxOS4xNTEyIDE4LjAyMjlMMjAuNTI4NiAyMC40MTE3TDI1LjQ3OTEgMTEuODM3NEwyMC41Mjg2IDMuMjYzMDNWMy4yNjgxMVpNMTguNjE3NiA1LjM0NjlMMTkuOTk1IDIuOTU4MDdIMTcuMjQwMkwxNS44NjI4IDUuMzQ2OUgxOC42MjI3SDE4LjYxNzZaTTE1Ljg1NzcgNS45NjY5N0wxOS4wNzUgMTEuNTMyNEgyMS44Mjk4TDE4LjYxNzYgNS45NjY5N0gxNS44NTc3Wk0xOC42MTc2IDE3LjcxNzlMMjEuODI5OCAxMi4xNDc0SDE5LjA3NUwxNS44NTc3IDE3LjcxNzlIMTguNjE3NlpNMTUuODU3NyAxOC4zMzhMMTcuMjM1MSAyMC43MTY3SDE5Ljk4OTlMMTguNjEyNSAxOC4zMzhIMTUuODUyNkgxNS44NTc3Wk02LjUyMDk4IDIxLjMwNjNDNi40NjUwNyAyMS4zMDYzIDYuNDE0MjQgMjEuMjkxIDYuMzY4NSAyMS4yNjU2QzYuMzIyNzYgMjEuMjQwMiA2LjI4MjA5IDIxLjE5OTUgNi4yNTY2OCAyMS4xNTM4TDIuNzcwMDIgMTUuMTIwN0gwLjAxNTI0ODJMNC45NjU3IDIzLjY5SDE0Ljg2MTVMMTMuNDg0MSAyMS4zMDYzSDYuNTI2MDZINi41MjA5OFpNMTQuMDE3OCAyMC45OTYyTDE1LjM5NTIgMjMuMzhMMTYuNzcyNiAyMC45OTExTDE1LjM5NTIgMTguNjAyM0wxNC4wMTc4IDIwLjk5MTFWMjAuOTk2MlpNMTQuODYxNSAxOC4yOTc0SDguNDM3MTJMNy4wNTk3MyAyMC42ODYySDEzLjQ4NDFMMTQuODYxNSAxOC4yOTc0Wk03Ljg5ODM2IDE3Ljk5MjRMNC42ODEwOCAxMi40MjE5TDMuMzAzNjkgMTQuODEwN0w2LjUyMDk4IDIwLjM4MTJMNy44OTgzNiAxNy45OTI0Wk0wLjAxMDE2NTQgMTQuNTAwN0gyLjc2NDk0TDQuMTQyMzIgMTIuMTExOEgxLjM5MjYzTDAuMDEwMTY1NCAxNC41MDA3Wk02LjI0MTQzIDIuNTQxM0M2LjI2Njg1IDIuNDk1NTYgNi4zMDc1MSAyLjQ1NDkgNi4zNTMyNSAyLjQyOTQ4QzYuMzk5IDIuNDA0MDcgNi40NTQ5IDIuMzg4ODIgNi41MDU3MyAyLjM4ODgySDEzLjQ3NEwxNC44NTE0IDBINC45NTA0NUwwIDguNTc0MzVIMi43NTQ3N0w2LjIzMTI3IDIuNTQ2MzhMNi4yNDE0MyAyLjU0MTNaTTQuMTQyMzIgMTEuNTc4MkwyLjc2NDk0IDkuMTg5MzRIMC4wMTAxNjU0TDEuMzg3NTUgMTEuNTc4Mkg0LjE0MjMyWk02LjUxMDgxIDMuMzEzODZMMy4yOTg2MSA4Ljg3OTNMNC42NzU5OSAxMS4yNjgxTDcuODg4MiA1LjcwMjY4TDYuNTEwODEgMy4zMTM4NlpNMTMuNDc5MSAzLjAwMzgySDcuMDQ0NDhMOC40MjE4NyA1LjM5MjY0SDE0Ljg1NjRMMTMuNDc5MSAzLjAwMzgyWk0xNS4zOTUyIDUuMDgyNkwxNi43Njc1IDIuNjk4ODZMMTUuMzk1MiAwLjMxMDAzOEwxNC4wMTc4IDIuNjkzNzhMMTUuMzk1MiA1LjA4MjZaIi8+Cjwvc3ZnPg==" style="height: 22px;" />
-</a>
+![Ghost text appearing as you type, accepted with Tab](https://raw.githubusercontent.com/dkruyt/FIM-Autocomplete/main/extensions/vscode/media/demo.gif)
 
-<p></p>
+## Setup
 
-</div>
+Run **FIM: Select Model** from the command palette, or click the `FIM` status bar
+item and choose **Select model…**. It walks you through provider → connection →
+model, and for providers that support it (Ollama, LM Studio, vLLM, and any
+OpenAI-compatible server) it lists the models actually available on the server
+rather than making you type a name.
 
-<h1 align="center">Continue</h1>
+Or set it by hand in `settings.json`:
 
-<div align="center">
+```jsonc
+{
+  "fim.model": {
+    "provider": "ollama",
+    "model": "qwen2.5-coder:1.5b",
+    "apiBase": "http://localhost:11434",
+  },
+}
+```
 
-**[Source-controlled AI checks, enforceable in CI](https://docs.continue.dev)**
+Any provider with a fill-in-the-middle endpoint works well — Ollama, vLLM,
+Mistral/Codestral, DeepSeek, LM Studio, or an OpenAI-compatible server:
 
-</div>
+```jsonc
+{
+  "fim.model": {
+    "provider": "mistral",
+    "model": "codestral-latest",
+    "apiKey": "...",
+  },
+}
+```
 
-## VS Code Agent
+The picker offers the eleven providers that make sense for autocomplete, but
+`provider` accepts any of the 61 the engine ships with — set it by hand if yours
+isn't listed.
 
-[Agent](https://docs.continue.dev/ide-extensions/agent/quick-start) to work on development tasks together with AI
+> `apiKey` is stored in `settings.json` in plaintext and will sync via VS Code's
+> Settings Sync. Use a local provider, or an environment-scoped key, if that
+> matters to you.
 
-![agent](docs/images/agent.gif)
+## Using it
 
-## VS Code Chat
+Just type. Once you pause for `fim.debounceDelay` (350 ms by default), the
+suggestion appears inline as grey **ghost text** after your cursor.
 
-[Chat](https://docs.continue.dev/ide-extensions/chat/quick-start) to ask general questions and clarify code sections
+| To do this                   | Press                           |
+| ---------------------------- | ------------------------------- |
+| Accept the whole suggestion  | `Tab`                           |
+| Accept just the next word    | `cmd+→` / `ctrl+→`              |
+| Dismiss it                   | `Esc`                           |
+| Ask for one right now        | `cmd+alt+\` / `ctrl+alt+\`      |
+| Turn autocomplete off and on | `cmd+k cmd+a` / `ctrl+k ctrl+a` |
 
-![chat](docs/images/chat.gif)
+Accept, dismiss and accept-word are VS Code's own inline-suggestion bindings, so
+if you've rebound them they keep working here. Only one suggestion is offered per
+position — there's nothing to cycle through with `alt+]` / `alt+[`.
 
-## VS Code Edit
+`cmd+alt+\` is the one to remember: it skips the debounce and asks the model
+straight away, which is what you want when a suggestion didn't appear on its own.
+The file-exclusion rules below still apply — forcing won't get you a completion in
+an ignored file.
 
-[Edit](https://docs.continue.dev/ide-extensions/edit/quick-start) to modify a code section without leaving your current file
+### The status bar
 
-![edit](docs/images/edit.gif)
+The `FIM` item on the right shows what the extension is doing. Click it for a
+menu with **Select model…**, an enable/disable toggle, and a link to all settings.
 
-## VS Code Autocomplete
+| Item                  | Meaning                           |
+| --------------------- | --------------------------------- |
+| `$(check) FIM`        | Enabled and idle                  |
+| `$(loading~spin) FIM` | Waiting on the model              |
+| `$(circle-slash) FIM` | Disabled — `fim.enabled` is false |
+| `$(debug-pause) FIM`  | Paused because you're on battery  |
 
-[Autocomplete](https://docs.continue.dev/ide-extensions/autocomplete/quick-start) to receive inline code suggestions as you type
+## Commands
 
-![autocomplete](docs/images/autocomplete.gif)
+All are under the `FIM:` prefix in the command palette.
 
-</div>
+| Command                | Default keybinding              |
+| ---------------------- | ------------------------------- |
+| Select Model           | —                               |
+| Toggle Autocomplete    | `cmd+k cmd+a` / `ctrl+k ctrl+a` |
+| Force Autocomplete     | `cmd+alt+\` / `ctrl+alt+\`      |
+| Open Autocomplete Menu | click the `FIM` status bar item |
+
+## When nothing appears
+
+In rough order of likelihood:
+
+- **The model isn't a code model.** A general chat model gets sent raw
+  `<fim_prefix>`-style tokens it has never been trained on, and whatever it
+  replies gets discarded by the output filters. Use a fill-in-the-middle code
+  model — `qwen2.5-coder`, `codestral`, `deepseek-coder`, `starcoder2`,
+  `codegemma`. **FIM: Select Model** warns you when a name doesn't look like one.
+- **The server isn't reachable.** Errors surface as a notification, with a
+  "Start Ollama" button when that's the problem. Check `fim.model.apiBase`.
+- **VS Code's inline suggestions are off.** `editor.inlineSuggest.enabled` must
+  be `true` (it is by default) or providers never get called.
+- **The file is excluded.** Check `fim.disableInFiles`, plus `.fimignore` in the
+  workspace root and `~/.fim/.fimignore` (gitignore syntax). `*.prompt` files are
+  always skipped, as are empty untitled files.
+- **The file looks like it holds secrets.** Paths matching `.env*`, `*.key`,
+  `*.pem`, `*.p12`, certificates and keystores are refused outright — and so are
+  `settings.json`, `config.json` and `config.yaml`, which surprises people. This
+  isn't configurable.
+
+Suggestions arriving **truncated** is a different problem: `fim.modelTimeout`
+(150 ms) caps how long output keeps streaming _after_ the first non-empty line,
+so a slow local model gets its multi-line completions cut short. Raise it to
+`500`–`1000` for local models on modest hardware.
+
+For anything else, **Help → Toggle Developer Tools → Console** shows the errors.
+
+## How it builds a prompt
+
+Beyond the text around your cursor, completions get context from:
+
+- definitions of imported symbols (tree-sitter + LSP)
+- the enclosing class/function signature and the types it references
+- recently edited and recently visited ranges
+- recently opened files
+- optionally the clipboard
+
+Most of these can be toggled under the `fim.*` settings, and each is raced
+against its own timeout so a slow one can't stall a keystroke.
+
+## Settings
+
+See all options under **Settings → Extensions → FIM Autocomplete**, or search
+`fim.` in `settings.json`. Useful ones:
+
+- `fim.enabled` — master switch
+- `fim.debounceDelay` — ms to wait after a keystroke (default 350)
+- `fim.maxPromptTokens` — prompt budget (default 1024)
+- `fim.multilineCompletions` — `always` / `never` / `auto`
+- `fim.disableInFiles` — glob patterns to skip
+
+A global `~/.fim/.fimignore` and per-workspace `.fimignore` files also suppress
+completions, using gitignore syntax.
+
+## What gets sent where
+
+Every keystroke that triggers a completion sends a prompt to the provider you
+configured in `fim.model` — and to nowhere else. That prompt contains the code
+around your cursor plus the context sources listed above, so assume anything in
+your open files can reach that endpoint. Point it at a local Ollama or vLLM if
+that's not acceptable.
+
+There is no telemetry, no analytics, and no account. The only requests that
+don't go to your configured provider are ones you explicitly ask for: clicking
+**Install Model** on an error notification looks the model up in the Ollama
+registry first.
 
 ## License
 
-[Apache 2.0 © 2023-2025 Continue Dev, Inc.](./LICENSE)
+Apache-2.0 — see `LICENSE.txt`. Original work © 2023-2026 Continue Dev, Inc.;
+see the `NOTICE` file in the
+[source repository](https://github.com/dkruyt/FIM-Autocomplete) for what changed.

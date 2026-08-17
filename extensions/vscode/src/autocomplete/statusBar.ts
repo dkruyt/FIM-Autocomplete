@@ -1,13 +1,7 @@
-import { ILLM } from "core";
-import { EXTENSION_NAME } from "core/util/constants";
 import * as vscode from "vscode";
 
 import { Battery } from "../util/battery";
-import { getMetaKeyLabel } from "../util/util";
-import {
-  CONTINUE_WORKSPACE_KEY,
-  getContinueWorkspaceConfig,
-} from "../util/workspaceConfig";
+import { EXTENSION_NAME } from "../util/constants";
 
 export enum StatusBarStatus {
   Disabled,
@@ -42,67 +36,41 @@ export const getStatusBarStatusFromQuickPickItemLabel = (
   }
 };
 
+const LABEL = "FIM";
+
 const statusBarItemText = (
   status: StatusBarStatus | undefined,
   loading?: boolean,
-  error?: boolean,
 ) => {
-  if (error) {
-    return "$(alert) Continue (config error)";
-  }
-
-  let text: string;
   switch (status) {
     case undefined:
-      if (loading) {
-        text = "$(loading~spin) Continue";
-      } else {
-        text = "Continue";
-      }
-      break;
+      return loading ? `$(loading~spin) ${LABEL}` : LABEL;
     case StatusBarStatus.Disabled:
-      text = "$(circle-slash) Continue";
-      break;
+      return `$(circle-slash) ${LABEL}`;
     case StatusBarStatus.Enabled:
-      text = "$(check) Continue";
-      break;
+      return `$(check) ${LABEL}`;
     case StatusBarStatus.Paused:
-      text = "$(debug-pause) Continue";
-      break;
+      return `$(debug-pause) ${LABEL}`;
     default:
-      text = "Continue";
+      return LABEL;
   }
-
-  // Append Next Edit indicator if enabled.
-  const config = vscode.workspace.getConfiguration(EXTENSION_NAME);
-  const nextEditEnabled = config.get<boolean>("enableNextEdit") ?? false;
-  if (nextEditEnabled) {
-    text += " (NE)";
-  }
-
-  return text;
 };
 
 const statusBarItemTooltip = (status: StatusBarStatus | undefined) => {
   switch (status) {
     case undefined:
     case StatusBarStatus.Disabled:
-      return "Click to enable tab autocomplete";
+      return "Click to enable autocomplete";
     case StatusBarStatus.Enabled:
-      const config = vscode.workspace.getConfiguration(EXTENSION_NAME);
-      const nextEditEnabled = config.get<boolean>("enableNextEdit") ?? false;
-      return nextEditEnabled
-        ? "Next Edit is enabled"
-        : "Tab autocomplete is enabled";
+      return "Autocomplete is enabled";
     case StatusBarStatus.Paused:
-      return "Tab autocomplete is paused";
+      return "Autocomplete is paused";
   }
 };
 
 let statusBarStatus: StatusBarStatus | undefined = undefined;
 let statusBarItem: vscode.StatusBarItem | undefined = undefined;
 let statusBarFalseTimeout: NodeJS.Timeout | undefined = undefined;
-let statusBarError: boolean = false;
 let configListenerRegistered = false;
 
 export function stopStatusBarLoading() {
@@ -111,43 +79,24 @@ export function stopStatusBarLoading() {
   }, 100);
 }
 
-/**
- * TODO: We should clean up how status bar is handled.
- * Ideally, there should be a single 'status' value without
- * 'loading' and 'error' booleans.
- */
 export function setupStatusBar(
   status: StatusBarStatus | undefined,
   loading?: boolean,
-  error?: boolean,
 ) {
   if (loading !== false) {
     clearTimeout(statusBarFalseTimeout);
     statusBarFalseTimeout = undefined;
   }
 
-  // If statusBarItem hasn't been defined yet, create it
   if (!statusBarItem) {
     statusBarItem = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Right,
     );
   }
 
-  if (error !== undefined) {
-    statusBarError = error;
-
-    if (status === undefined) {
-      status = statusBarStatus;
-    }
-
-    if (loading === undefined) {
-      loading = loading;
-    }
-  }
-
-  statusBarItem.text = statusBarItemText(status, loading, statusBarError);
+  statusBarItem.text = statusBarItemText(status, loading);
   statusBarItem.tooltip = statusBarItemTooltip(status ?? statusBarStatus);
-  statusBarItem.command = "continue.openTabAutocompleteConfigMenu";
+  statusBarItem.command = `${EXTENSION_NAME}.openConfigMenu`;
 
   statusBarItem.show();
   if (status !== undefined) {
@@ -159,10 +108,10 @@ export function setupStatusBar(
   if (!configListenerRegistered) {
     configListenerRegistered = true;
     vscode.workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration(CONTINUE_WORKSPACE_KEY)) {
-        const enabled = getContinueWorkspaceConfig().get<boolean>(
-          "enableTabAutocomplete",
-        );
+      if (event.affectsConfiguration(EXTENSION_NAME)) {
+        const enabled = vscode.workspace
+          .getConfiguration(EXTENSION_NAME)
+          .get<boolean>("enabled");
         if (enabled && statusBarStatus === StatusBarStatus.Paused) {
           return;
         }
@@ -181,11 +130,9 @@ export function getStatusBarStatus(): StatusBarStatus | undefined {
 export function monitorBatteryChanges(battery: Battery): vscode.Disposable {
   return battery.onChangeAC((acConnected: boolean) => {
     const config = vscode.workspace.getConfiguration(EXTENSION_NAME);
-    const enabled = config.get<boolean>("enableTabAutocomplete");
+    const enabled = config.get<boolean>("enabled");
     if (!!enabled) {
-      const pauseOnBattery = config.get<boolean>(
-        "pauseTabAutocompleteOnBattery",
-      );
+      const pauseOnBattery = config.get<boolean>("pauseOnBattery");
       setupStatusBar(
         acConnected || !pauseOnBattery
           ? StatusBarStatus.Enabled
@@ -193,80 +140,4 @@ export function monitorBatteryChanges(battery: Battery): vscode.Disposable {
       );
     }
   });
-}
-
-export function getAutocompleteStatusBarDescription(
-  selected: string | undefined,
-  { title, apiKey, providerName }: ILLM,
-): string | undefined {
-  if (title !== selected) {
-    return undefined;
-  }
-
-  let description = "Current autocomplete model";
-
-  // Only set for Mistral since our default config includes Codestral without
-  // an API key
-  if ((apiKey === undefined || apiKey === "") && providerName === "mistral") {
-    description += " (Missing API key)";
-  }
-
-  return description;
-}
-
-export function getAutocompleteStatusBarTitle(
-  selected: string | undefined,
-  { title }: ILLM,
-): string {
-  if (!title) {
-    return "Unnamed Model";
-  }
-
-  if (title === selected) {
-    return `$(check) ${title}`;
-  }
-
-  return title;
-}
-
-const USE_FIM_MENU_ITEM_LABEL = "$(export) Use FIM autocomplete over Next Edit";
-const USE_NEXT_EDIT_MENU_ITEM_LABEL =
-  "$(sparkle) Use Next Edit over FIM autocomplete";
-
-// Shows what items get rendered in the autocomplete menu.
-export function getNextEditMenuItems(
-  currentStatus: StatusBarStatus | undefined,
-  nextEditEnabled: boolean,
-): vscode.QuickPickItem[] {
-  if (currentStatus !== StatusBarStatus.Enabled) return [];
-
-  return [
-    {
-      label: nextEditEnabled
-        ? USE_FIM_MENU_ITEM_LABEL
-        : USE_NEXT_EDIT_MENU_ITEM_LABEL,
-      description: getMetaKeyLabel() + " + K, " + getMetaKeyLabel() + " + N",
-    },
-  ];
-}
-
-// Checks if the current selected option is a Next Edit toggle label.
-export function isNextEditToggleLabel(label: string): boolean {
-  return (
-    label === USE_FIM_MENU_ITEM_LABEL || label === USE_NEXT_EDIT_MENU_ITEM_LABEL
-  );
-}
-
-// Updates the config once Next Edit is toggled.
-export function handleNextEditToggle(
-  label: string,
-  config: vscode.WorkspaceConfiguration,
-) {
-  const isEnabling = label === USE_NEXT_EDIT_MENU_ITEM_LABEL;
-
-  config.update(
-    "enableNextEdit",
-    isEnabling,
-    vscode.ConfigurationTarget.Global,
-  );
 }

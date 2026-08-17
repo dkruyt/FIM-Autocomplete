@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install and build packages/
+        run: |
+          for d in fetch llm-info openai-adapters; do
+            (cd "packages/$d" && npm ci --no-audit --no-fund && npm run build)
+          done
+
+      - name: Install core
+        run: cd core && npm ci --no-audit --no-fund
+
+      - name: Install extension
+        run: cd extensions/vscode && npm ci --no-audit --no-fund
+
+      - name: Build VSIX
+        env:
+          SKIP_INSTALLS: "true"
+        run: |
+          cd extensions/vscode
+          node scripts/prepackage.js
+          npm run esbuild
+          npm run package
+
+      - name: Attach VSIX to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: extensions/vscode/build/*.vsix
+          generate_release_notes: true
+
+      # Marketplace publishing is deliberately manual for now:
+      #   npx @vscode/vsce publish --packagePath build/*.vsix

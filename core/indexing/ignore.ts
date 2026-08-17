@@ -2,7 +2,7 @@ import ignore from "ignore";
 
 import path from "path";
 import { fileURLToPath } from "url";
-import { ContinueError, ContinueErrorReason } from "../util/errors";
+import { FimError, FimErrorReason } from "../util/errors";
 
 // Security-focused ignore patterns - these should always be excluded for security reasons
 export const DEFAULT_SECURITY_IGNORE_FILETYPES = [
@@ -148,7 +148,7 @@ export const ADDITIONAL_INDEXING_IGNORE_FILETYPES = [
   "go.sum",
   "*.gitignore",
   "*.gitkeep",
-  "*.continueignore",
+  "*.fimignore",
   "*.csv",
   "*.uasset",
   "*.pdb",
@@ -158,7 +158,7 @@ export const ADDITIONAL_INDEXING_IGNORE_FILETYPES = [
   "*.jsonl",
   // "*.prompt", // can be incredibly confusing for the LLM to have another set of instructions injected into the prompt
   // Application specific
-  ".continue/",
+  ".fim/",
 ];
 
 export const ADDITIONAL_INDEXING_IGNORE_DIRS = [
@@ -256,8 +256,8 @@ export function isSecurityConcern(filePathOrUri: string) {
 
 export function throwIfFileIsSecurityConcern(filepath: string) {
   if (isSecurityConcern(filepath)) {
-    throw new ContinueError(
-      ContinueErrorReason.FileIsSecurityConcern,
+    throw new FimError(
+      FimErrorReason.FileIsSecurityConcern,
       `Reading or Editing ${filepath} is not allowed because it is a security concern. Do not attempt to read or edit this file in any way.`,
     );
   }

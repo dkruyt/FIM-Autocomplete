@@ -1,6 +1,5 @@
-import { streamSse } from "@continuedev/fetch";
+import { streamSse } from "@fim/fetch";
 import { CompletionOptions, LLMOptions } from "../../index.js";
-import { osModelsEditPrompt } from "../templates/edit.js";
 
 import OpenAI from "./OpenAI.js";
 
@@ -12,9 +11,7 @@ class Deepseek extends OpenAI {
   static defaultOptions: Partial<LLMOptions> = {
     apiBase: "https://api.deepseek.com/",
     model: "deepseek-coder",
-    promptTemplates: {
-      edit: osModelsEditPrompt,
-    },
+    promptTemplates: {},
     useLegacyCompletionsEndpoint: false,
   };
   maxStopWords: number | undefined = 16;
