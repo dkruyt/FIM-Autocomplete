@@ -63,7 +63,7 @@ jobs:
           npm run esbuild
           npm run package
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: fim-autocomplete-vsix
           path: extensions/vscode/build/*.vsix
