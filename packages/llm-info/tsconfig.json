@@ -15,6 +15,7 @@
     "isolatedModules": true,
     "noEmitOnError": false,
     "types": ["node"],
+    "rootDir": "src",
     "outDir": "dist",
     "declaration": true
     // "sourceMap": true
