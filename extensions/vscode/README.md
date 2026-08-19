@@ -52,6 +52,14 @@ The picker offers the eleven providers that make sense for autocomplete; the
 > Upgrading from 0.1.0? The single `fim.model` object became one setting per
 > field. Your config is migrated automatically on first start.
 
+### The tutorial file
+
+On the first start after installing, a `tutorial.py` opens: a file that explains
+the keybindings, the status bar and the settings, with exercises to try them on.
+It's a scratchpad — edit it, it is never run — and it lives at
+`~/.fim/tutorial.py`. **FIM: Open Tutorial**, or **Open tutorial** in the status
+bar menu, brings it back with whatever you left in it.
+
 ## Using it
 
 Just type. Once you pause for `fim.debounceDelay` (350 ms by default), the

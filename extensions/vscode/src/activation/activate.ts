@@ -9,6 +9,7 @@ import {
 import { registerAllCommands } from "../commands";
 import { FimConfig } from "../config/FimConfig";
 import { migrateLegacyModelSetting } from "../config/migrateLegacyModel";
+import { showTutorialOnFirstInstall } from "../tutorial";
 import { Battery } from "../util/battery";
 import { EXTENSION_NAME } from "../util/constants";
 import { VsCodeIde } from "../VsCodeIde";
@@ -43,6 +44,10 @@ export async function activateExtension(context: vscode.ExtensionContext) {
   );
 
   registerAllCommands(context, provider, config, ide);
+
+  // After the commands, so the "Select model" button on its prompt resolves.
+  // Not awaited: nothing else should wait on an editor opening.
+  void showTutorialOnFirstInstall(context, config);
 
   return { provider, config, ide };
 }
