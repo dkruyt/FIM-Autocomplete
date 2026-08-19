@@ -12,8 +12,8 @@
   "author": "Dennis Kruyt",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@types/node": "^22.15.29",
-    "typescript": "^5.5.2"
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2"
   },
   "overrides": {
     "picomatch": "^4.0.4"
