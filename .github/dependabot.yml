@@ -15,6 +15,12 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 5
+    ignore:
+      # @types/vscode has to match the `engines.vscode` floor in
+      # extensions/vscode/package.json (^1.70.0). Newer typings would let the
+      # extension compile against APIs the oldest supported VS Code does not
+      # have. Raise both together, deliberately, or not at all.
+      - dependency-name: "@types/vscode"
     groups:
       # Provider SDKs move constantly and are only reachable through
       # llmFromProviderAndOptions; batch them into one PR.
