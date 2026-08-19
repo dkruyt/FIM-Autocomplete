@@ -6,8 +6,8 @@ import * as vscode from "vscode";
 import { EXTENSION_NAME } from "../util/constants";
 
 /**
- * Shape of the `fim.model` setting. Mirrors the subset of LLMOptions that makes
- * sense to configure by hand for a completion model.
+ * The completion model, assembled from the `fim.*` settings. Mirrors the subset
+ * of LLMOptions that makes sense to configure by hand.
  */
 export interface FimModelSetting {
   provider?: string;
@@ -19,6 +19,52 @@ export interface FimModelSetting {
   contextLength?: number;
   requestOptions?: LLMOptions["requestOptions"];
   completionOptions?: LLMOptions["completionOptions"];
+}
+
+/** Trims a string setting, treating blank as unset. */
+function text(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+/** Treats the `{}` default of an object setting as unset. */
+function nonEmptyObject<T extends object>(value: T | undefined): T | undefined {
+  return value && Object.keys(value).length > 0 ? value : undefined;
+}
+
+/**
+ * Reads the completion model out of the flat `fim.provider` / `fim.model` /
+ * `fim.apiBase` / ... settings, so all of it is editable in the Settings UI.
+ *
+ * Before 0.2.0 the whole thing was one `fim.model` object. That shape is still
+ * honoured as a fallback — migrateLegacyModelSetting() rewrites it on startup,
+ * but a scope it skipped, or a window that has not reloaded yet, must keep
+ * working. Flat keys win over it, key by key.
+ */
+export function readModelSetting(
+  config: vscode.WorkspaceConfiguration,
+): FimModelSetting {
+  const raw = config.get<unknown>("model");
+  const legacy: FimModelSetting =
+    typeof raw === "object" && raw !== null ? (raw as FimModelSetting) : {};
+
+  return {
+    provider: text(config.get<string>("provider")) ?? text(legacy.provider),
+    model:
+      (typeof raw === "string" ? text(raw) : undefined) ?? text(legacy.model),
+    apiBase: text(config.get<string>("apiBase")) ?? text(legacy.apiBase),
+    apiKey: text(config.get<string>("apiKey")) ?? text(legacy.apiKey),
+    template: text(config.get<string>("template")) ?? text(legacy.template),
+    contextLength: config.get<number>("contextLength") ?? legacy.contextLength,
+    requestOptions:
+      nonEmptyObject(
+        config.get<LLMOptions["requestOptions"]>("requestOptions"),
+      ) ?? legacy.requestOptions,
+    completionOptions:
+      nonEmptyObject(
+        config.get<LLMOptions["completionOptions"]>("completionOptions"),
+      ) ?? legacy.completionOptions,
+  };
 }
 
 /**
@@ -116,7 +162,7 @@ export class FimConfig implements FimConfigProvider {
   }
 
   private getModelSetting(): FimModelSetting {
-    return this.config.get<FimModelSetting>("model") ?? {};
+    return readModelSetting(this.config);
   }
 
   async getModel(): Promise<ILLM | undefined> {
@@ -151,7 +197,7 @@ export class FimConfig implements FimConfigProvider {
       if (this.cachedModelKey !== key) {
         this.cachedModelKey = key;
         void vscode.window.showErrorMessage(
-          `Unknown "${EXTENSION_NAME}.model.provider": ${desc.provider}`,
+          `Unknown "${EXTENSION_NAME}.provider": ${desc.provider}`,
         );
       }
       return undefined;

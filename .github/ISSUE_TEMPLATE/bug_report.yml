@@ -29,14 +29,12 @@ body:
     attributes:
       label: Your `fim.*` settings
       description: >
-        From settings.json. **Remove your `apiKey`** before pasting.
+        From settings.json. **Remove your `fim.apiKey`** before pasting.
       render: jsonc
       placeholder: |
-        "fim.model": {
-          "provider": "ollama",
-          "model": "qwen2.5-coder:1.5b",
-          "apiBase": "http://localhost:11434"
-        }
+        "fim.provider": "ollama",
+        "fim.model": "qwen2.5-coder:1.5b",
+        "fim.apiBase": "http://localhost:11434"
     validations:
       required: true
 
@@ -44,7 +42,7 @@ body:
     id: version
     attributes:
       label: Extension version
-      placeholder: "0.1.0"
+      placeholder: "0.2.0"
     validations:
       required: true
 

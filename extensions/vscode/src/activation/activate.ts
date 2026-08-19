@@ -8,11 +8,16 @@ import {
 } from "../autocomplete/statusBar";
 import { registerAllCommands } from "../commands";
 import { FimConfig } from "../config/FimConfig";
+import { migrateLegacyModelSetting } from "../config/migrateLegacyModel";
 import { Battery } from "../util/battery";
 import { EXTENSION_NAME } from "../util/constants";
 import { VsCodeIde } from "../VsCodeIde";
 
 export async function activateExtension(context: vscode.ExtensionContext) {
+  // Before anything reads the config: rewrites a pre-0.2.0 `fim.model` object
+  // into the flat `fim.*` settings.
+  await migrateLegacyModelSetting();
+
   const ide = new VsCodeIde(context);
   const config = new FimConfig();
   context.subscriptions.push(config);

@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 
 import { EXTENSION_NAME } from "../util/constants";
 
-import { FimModelSetting } from "./FimConfig";
+import { FimModelSetting, readModelSetting } from "./FimConfig";
 
 interface ProviderChoice {
   /** Must match a `static providerName` in core/llm/llms. */
@@ -252,12 +252,28 @@ async function pickModel(
 }
 
 /**
- * Guided setup for `fim.model`. Native QuickPicks only — this extension has no
- * webview.
+ * Writes the wizard's answers to the flat `fim.*` settings. Anything it did not
+ * collect is cleared rather than left behind — an apiKey belonging to the
+ * previous provider is worse than no key at all. The settings the wizard never
+ * asks about (template, contextLength, requestOptions, completionOptions) are
+ * separate keys now, so they survive untouched.
+ */
+async function writeModelSettings(
+  config: vscode.WorkspaceConfiguration,
+  desc: FimModelSetting,
+): Promise<void> {
+  for (const key of ["provider", "model", "apiBase", "apiKey"] as const) {
+    await config.update(key, desc[key], vscode.ConfigurationTarget.Global);
+  }
+}
+
+/**
+ * Guided setup for the `fim.*` model settings. Native QuickPicks only — this
+ * extension has no webview.
  */
 export async function selectModel(): Promise<void> {
   const config = vscode.workspace.getConfiguration(EXTENSION_NAME);
-  const current = config.get<FimModelSetting>("model") ?? {};
+  const current = readModelSetting(config);
 
   const providerPick = await pickProvider(current.provider);
   if (!providerPick) {
@@ -330,21 +346,7 @@ export async function selectModel(): Promise<void> {
   }
   desc.model = model.trim();
 
-  // Carry over settings the wizard doesn't cover so a re-run doesn't drop them
-  if (current.template) {
-    desc.template = current.template;
-  }
-  if (current.completionOptions) {
-    desc.completionOptions = current.completionOptions;
-  }
-  if (current.contextLength) {
-    desc.contextLength = current.contextLength;
-  }
-  if (current.requestOptions) {
-    desc.requestOptions = current.requestOptions;
-  }
-
-  await config.update("model", desc, vscode.ConfigurationTarget.Global);
+  await writeModelSettings(config, desc);
   await config.update("enabled", true, vscode.ConfigurationTarget.Global);
 
   if (looksLikeCodeModel(desc.model)) {

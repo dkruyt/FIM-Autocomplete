@@ -1,7 +1,7 @@
 {
   "name": "fim-autocomplete",
   "author": "Dennis Kruyt",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/dkruyt/FIM-Autocomplete.git"
@@ -49,45 +49,179 @@
           "default": true,
           "markdownDescription": "Enable inline autocomplete suggestions."
         },
+        "fim.provider": {
+          "type": "string",
+          "enum": [
+            "ollama",
+            "lmstudio",
+            "vllm",
+            "llama.cpp",
+            "lemonade",
+            "mistral",
+            "deepseek",
+            "inception",
+            "siliconflow",
+            "moonshot",
+            "openai",
+            "anthropic",
+            "askSage",
+            "azure",
+            "bedrock",
+            "bedrockimport",
+            "cerebras",
+            "clawrouter",
+            "cloudflare",
+            "cohere",
+            "cometapi",
+            "deepinfra",
+            "docker",
+            "fireworks",
+            "flowise",
+            "function-network",
+            "gemini",
+            "groq",
+            "huggingface-inference-api",
+            "huggingface-tei",
+            "huggingface-tgi",
+            "kindo",
+            "llamafile",
+            "llamastack",
+            "mimo",
+            "minimax",
+            "msty",
+            "ncompass",
+            "nebius",
+            "nous",
+            "novita",
+            "nvidia",
+            "openrouter",
+            "ovhcloud",
+            "relace",
+            "replicate",
+            "sagemaker",
+            "sambanova",
+            "scaleway",
+            "tars",
+            "tensorix",
+            "text-gen-webui",
+            "together",
+            "venice",
+            "vertexai",
+            "voyage",
+            "watsonx",
+            "xAI",
+            "zAI",
+            "mock",
+            "test"
+          ],
+          "enumDescriptions": [
+            "Local models. Native FIM endpoint.",
+            "LM Studio. Local models via an OpenAI-compatible server.",
+            "Self-hosted vLLM server. Native FIM endpoint.",
+            "Self-hosted llama.cpp server.",
+            "Local Lemonade server with NPU/GPU acceleration.",
+            "Mistral. Codestral is purpose-built for FIM. Native FIM endpoint.",
+            "DeepSeek. deepseek-coder has a native FIM endpoint.",
+            "Inception. Mercury Coder, a diffusion code model. Native FIM endpoint.",
+            "SiliconFlow. Hosted open models. Native FIM endpoint.",
+            "Moonshot. Native FIM endpoint.",
+            "OpenAI, or any gateway speaking the OpenAI API - set apiBase. Native FIM endpoint.",
+            "Anthropic Claude.",
+            "Ask Sage.",
+            "Azure OpenAI.",
+            "AWS Bedrock.",
+            "AWS Bedrock, imported custom model.",
+            "Cerebras Inference.",
+            "ClawRouter, a local router.",
+            "Cloudflare Workers AI.",
+            "Cohere.",
+            "CometAPI.",
+            "DeepInfra.",
+            "Docker Model Runner, run locally.",
+            "Fireworks AI.",
+            "Flowise.",
+            "Function Network.",
+            "Google Gemini.",
+            "Groq.",
+            "Hugging Face Inference API.",
+            "Hugging Face Text Embeddings Inference. Embeddings only.",
+            "Hugging Face Text Generation Inference.",
+            "Kindo.",
+            "llamafile, run locally.",
+            "Llama Stack.",
+            "MiMo, by Xiaomi.",
+            "MiniMax.",
+            "Msty, run locally.",
+            "nCompass.",
+            "Nebius AI Studio.",
+            "Nous Research.",
+            "Novita AI.",
+            "NVIDIA NIM.",
+            "OpenRouter.",
+            "OVHcloud AI Endpoints.",
+            "Relace.",
+            "Replicate.",
+            "AWS SageMaker.",
+            "SambaNova.",
+            "Scaleway Generative APIs.",
+            "Tetrate Agent Router Service.",
+            "Tensorix.",
+            "Text Generation WebUI.",
+            "Together AI.",
+            "Venice AI.",
+            "Google Vertex AI.",
+            "Voyage AI. Embeddings only.",
+            "IBM watsonx.",
+            "xAI Grok.",
+            "Z.ai.",
+            "Testing only.",
+            "Testing only."
+          ],
+          "default": "",
+          "order": 1,
+          "markdownDescription": "Which LLM provider serves completions. Providers whose description says *Native FIM endpoint* have a real fill-in-the-middle API; the rest are prompted with the FIM template for the model and usually do worse.\n\nSet `#fim.model#` to go with it."
+        },
         "fim.model": {
+          "type": "string",
+          "default": "",
+          "order": 2,
+          "markdownDescription": "Model name, exactly as `#fim.provider#` expects it - e.g. `qwen2.5-coder:1.5b`, `codestral-latest`, `deepseek-coder`.\n\nAutocomplete works best with a fill-in-the-middle code model. Run **FIM: Select Model** from the command palette to pick from the models your provider reports."
+        },
+        "fim.apiBase": {
+          "type": "string",
+          "default": "",
+          "order": 3,
+          "markdownDescription": "Base URL of the API. Required for self-hosted providers, e.g. `http://localhost:11434` for Ollama. Leave blank to use the provider's own default."
+        },
+        "fim.apiKey": {
+          "type": "string",
+          "default": "",
+          "order": 4,
+          "scope": "machine",
+          "markdownDescription": "API key, if the provider needs one. Leave blank for local providers.\n\nStored in `settings.json` in plaintext and synced by Settings Sync. Machine-scoped, so it cannot be set from a checked-in `.vscode/settings.json`."
+        },
+        "fim.contextLength": {
+          "type": "number",
+          "order": 5,
+          "markdownDescription": "Model context length in tokens. Leave unset to use the provider's default."
+        },
+        "fim.template": {
+          "type": "string",
+          "default": "",
+          "order": 6,
+          "markdownDescription": "Override the autodetected FIM prompt template with a Handlebars string using `{{{prefix}}}` and `{{{suffix}}}`. Leave blank to autodetect from the model name."
+        },
+        "fim.requestOptions": {
           "type": "object",
           "default": {},
-          "markdownDescription": "The completion model. `provider` and `model` are required.",
-          "properties": {
-            "provider": {
-              "type": "string",
-              "description": "Provider id, e.g. \"ollama\", \"openai\", \"mistral\", \"deepseek\", \"vllm\", \"lmstudio\"."
-            },
-            "model": {
-              "type": "string",
-              "description": "Model name as the provider expects it, e.g. \"qwen2.5-coder:1.5b\"."
-            },
-            "apiBase": {
-              "type": "string",
-              "description": "Base URL of the API. Required for self-hosted providers."
-            },
-            "apiKey": {
-              "type": "string",
-              "description": "API key, if the provider needs one."
-            },
-            "template": {
-              "type": "string",
-              "description": "Override the autodetected FIM prompt template."
-            },
-            "contextLength": {
-              "type": "number",
-              "description": "Model context length in tokens."
-            },
-            "requestOptions": {
-              "type": "object",
-              "description": "Extra HTTP request options (headers, proxy, timeout, verifySsl)."
-            },
-            "completionOptions": {
-              "type": "object",
-              "description": "Sampling options (temperature, maxTokens, stop, ...)."
-            }
-          },
-          "additionalProperties": false
+          "order": 7,
+          "markdownDescription": "Extra HTTP request options: `headers`, `proxy`, `timeout`, `verifySsl`. Edit in `settings.json`."
+        },
+        "fim.completionOptions": {
+          "type": "object",
+          "default": {},
+          "order": 8,
+          "markdownDescription": "Sampling options: `temperature`, `maxTokens`, `stop`, ... Edit in `settings.json`."
         },
         "fim.debounceDelay": {
           "type": "number",

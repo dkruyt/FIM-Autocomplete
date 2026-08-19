@@ -18,15 +18,15 @@ model, and for providers that support it (Ollama, LM Studio, vLLM, and any
 OpenAI-compatible server) it lists the models actually available on the server
 rather than making you type a name.
 
-Or set it by hand in `settings.json`:
+Or set it in **Settings → Extensions → FIM Autocomplete**: **Provider** is a
+dropdown of every provider the engine ships with, and **Model**, **Api Base** and
+**Api Key** are text boxes next to it. In `settings.json` the same thing reads:
 
 ```jsonc
 {
-  "fim.model": {
-    "provider": "ollama",
-    "model": "qwen2.5-coder:1.5b",
-    "apiBase": "http://localhost:11434",
-  },
+  "fim.provider": "ollama",
+  "fim.model": "qwen2.5-coder:1.5b",
+  "fim.apiBase": "http://localhost:11434",
 }
 ```
 
@@ -35,21 +35,22 @@ Mistral/Codestral, DeepSeek, LM Studio, or an OpenAI-compatible server:
 
 ```jsonc
 {
-  "fim.model": {
-    "provider": "mistral",
-    "model": "codestral-latest",
-    "apiKey": "...",
-  },
+  "fim.provider": "mistral",
+  "fim.model": "codestral-latest",
+  "fim.apiKey": "...",
 }
 ```
 
-The picker offers the eleven providers that make sense for autocomplete, but
-`provider` accepts any of the 61 the engine ships with — set it by hand if yours
-isn't listed.
+The picker offers the eleven providers that make sense for autocomplete; the
+**Provider** dropdown lists all 61 the engine ships with.
 
-> `apiKey` is stored in `settings.json` in plaintext and will sync via VS Code's
-> Settings Sync. Use a local provider, or an environment-scoped key, if that
-> matters to you.
+> `fim.apiKey` is stored in `settings.json` in plaintext and will sync via
+> VS Code's Settings Sync. Use a local provider, or an environment-scoped key, if
+> that matters to you. The setting is machine-scoped, so a checked-in
+> `.vscode/settings.json` can't set it for the whole repo.
+
+> Upgrading from 0.1.0? The single `fim.model` object became one setting per
+> field. Your config is migrated automatically on first start.
 
 ## Using it
 
@@ -106,7 +107,7 @@ In rough order of likelihood:
   model — `qwen2.5-coder`, `codestral`, `deepseek-coder`, `starcoder2`,
   `codegemma`. **FIM: Select Model** warns you when a name doesn't look like one.
 - **The server isn't reachable.** Errors surface as a notification, with a
-  "Start Ollama" button when that's the problem. Check `fim.model.apiBase`.
+  "Start Ollama" button when that's the problem. Check `fim.apiBase`.
 - **VS Code's inline suggestions are off.** `editor.inlineSuggest.enabled` must
   be `true` (it is by default) or providers never get called.
 - **The file is excluded.** Check `fim.disableInFiles`, plus `.fimignore` in the
@@ -154,7 +155,7 @@ completions, using gitignore syntax.
 ## What gets sent where
 
 Every keystroke that triggers a completion sends a prompt to the provider you
-configured in `fim.model` — and to nowhere else. That prompt contains the code
+configured in `fim.provider` — and to nowhere else. That prompt contains the code
 around your cursor plus the context sources listed above, so assume anything in
 your open files can reach that endpoint. Point it at a local Ollama or vLLM if
 that's not acceptable.

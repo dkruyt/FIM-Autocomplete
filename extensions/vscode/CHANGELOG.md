@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.2.0
+
+### Model settings are editable in the Settings UI
+
+The completion model used to be one `fim.model` object. VS Code's Settings editor
+can't render an object with nested properties, so it offered only _"Edit in
+settings.json"_ — the two things everyone has to set (provider, model) and the
+two most people have to set (API base, API key) were unreachable from the GUI.
+
+It is now one setting per field:
+
+| Before                        | Now                     |
+| ----------------------------- | ----------------------- |
+| `fim.model.provider`          | `fim.provider`          |
+| `fim.model.model`             | `fim.model`             |
+| `fim.model.apiBase`           | `fim.apiBase`           |
+| `fim.model.apiKey`            | `fim.apiKey`            |
+| `fim.model.template`          | `fim.template`          |
+| `fim.model.contextLength`     | `fim.contextLength`     |
+| `fim.model.requestOptions`    | `fim.requestOptions`    |
+| `fim.model.completionOptions` | `fim.completionOptions` |
+
+`fim.provider` is a dropdown of all 61 providers the engine ships with, each with
+a one-line description marking the ones that have a native fill-in-the-middle
+endpoint. `fim.apiKey` is machine-scoped, so a checked-in `.vscode/settings.json`
+can no longer set it for everyone on a repo.
+
+A 0.1.0 `fim.model` object is migrated to the new keys on first start, in
+whichever scopes it was set, and is still read as a fallback if it survives
+anywhere. **FIM: Select Model** writes the new keys, and now clears an API key
+left over from a previous provider instead of carrying it across.
+
 ## 0.1.0
 
 First release.

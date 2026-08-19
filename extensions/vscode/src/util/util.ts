@@ -158,7 +158,7 @@ export function getMetaKeyName() {
 
 export function getExtensionVersion(): string {
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
-  return extension?.packageJSON.version || "0.1.0";
+  return extension?.packageJSON.version || "0.2.0";
 }
 
 export function getvsCodeUriScheme(): string {

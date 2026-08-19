@@ -25,7 +25,8 @@ the extension loaded. Its global directory is redirected to `.fim-debug/` in the
 repo so you don't pollute your real `~/.fim`.
 
 You'll need a model configured in the dev host's settings — run **FIM: Select
-Model**, or set `fim.model` by hand. See the [README](./README.md#configuring-a-model).
+Model**, or set `fim.provider` and `fim.model` by hand. See the
+[README](./README.md#configuring-a-model).
 
 ## Checks
 

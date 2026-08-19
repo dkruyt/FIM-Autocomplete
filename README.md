@@ -15,7 +15,7 @@ Grab the `.vsix` from the [latest release](https://github.com/dkruyt/FIM-Autocom
 and install it:
 
 ```bash
-code --install-extension fim-autocomplete-0.1.0.vsix
+code --install-extension fim-autocomplete-0.2.0.vsix
 ```
 
 Then configure a model — nothing happens until you do.
@@ -27,15 +27,18 @@ palette, or the `FIM` status bar item → **Select model…**. It's built from n
 QuickPicks (this extension has no webview) and queries the provider for its
 available models where that's supported.
 
-Or set it by hand — `provider` and `model` are the only required fields:
+Everything it sets is a plain setting, so you can also do it in
+**Settings → Extensions → FIM Autocomplete**: pick **Provider** from the
+dropdown, then fill in **Model**, and **Api Base** / **Api Key** if your provider
+needs them. `fim.provider` and `fim.model` are the only required ones.
+
+Or in `settings.json`:
 
 ```jsonc
 {
-  "fim.model": {
-    "provider": "ollama",
-    "model": "qwen2.5-coder:1.5b",
-    "apiBase": "http://localhost:11434",
-  },
+  "fim.provider": "ollama",
+  "fim.model": "qwen2.5-coder:1.5b",
+  "fim.apiBase": "http://localhost:11434",
 }
 ```
 
@@ -45,24 +48,28 @@ example:
 
 ```jsonc
 {
-  "fim.model": {
-    "provider": "mistral",
-    "model": "codestral-latest",
-    "apiKey": "...",
-  },
+  "fim.provider": "mistral",
+  "fim.model": "codestral-latest",
+  "fim.apiKey": "...",
 }
 ```
 
-> `apiKey` lives in `settings.json` in plaintext and will sync via Settings Sync.
+> `fim.apiKey` lives in `settings.json` in plaintext and will sync via Settings
+> Sync. It's machine-scoped, so a checked-in `.vscode/settings.json` can't set
+> it for everyone on the repo.
 
 The FIM prompt template is autodetected from the model name. Override it with
-`fim.model.template` (a Handlebars string with `{{{prefix}}}` / `{{{suffix}}}` /
+`fim.template` (a Handlebars string with `{{{prefix}}}` / `{{{suffix}}}` /
 `{{{filename}}}` / `{{{language}}}` / `{{{reponame}}}`) when autodetection picks
 wrong — for instance to drive an instruct-tuned model that doesn't understand raw
 FIM sentinel tokens.
 
 See the full option list under **Settings → Extensions → FIM Autocomplete**, or
 search `fim.` in `settings.json`.
+
+> Upgrading from 0.1.0? The single `fim.model` object became one setting per
+> field. Your existing config is migrated automatically the first time 0.2.0
+> starts.
 
 ## Using it
 
