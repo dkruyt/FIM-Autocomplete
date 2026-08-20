@@ -1,5 +1,3 @@
-import { ModelDescription } from "..";
-
 export const PROVIDER_TOOL_SUPPORT: Record<string, (model: string) => boolean> =
   {
     anthropic: (model) => {
@@ -486,38 +484,3 @@ export const PROVIDER_TOOL_SUPPORT: Record<string, (model: string) => boolean> =
       return false;
     },
   };
-
-export function isRecommendedAgentModel(modelName: string): boolean {
-  // AND behavior
-  const recs: RegExp[][] = [
-    [/o[134]/],
-    [/deepseek/, /r1|reasoner/],
-    [/gemini/, /2\.5/, /pro/],
-    [/gemini/, /3\.1-pro|3-flash-preview/],
-    [/gpt-[5-9]/],
-    [/gpt-4\.1/],
-    [/codex/],
-    [/claude/, /sonnet/, /3\.7|3-7|(?<!\d)-[4-9]/],
-    [/claude/, /opus/, /(?<!\d)-[4-9]/],
-    [/grok-code/],
-    [/grok-[4-9][\.-]\d/],
-    [/claude/, /[4-9]-[5-9]/],
-  ];
-  for (const combo of recs) {
-    if (combo.every((regex) => modelName.toLowerCase().match(regex))) {
-      return true;
-    }
-  }
-  return false;
-}
-export function modelSupportsNativeTools(modelDescription: ModelDescription) {
-  if (modelDescription.capabilities?.tools !== undefined) {
-    return modelDescription.capabilities.tools;
-  }
-
-  const providerSupport = PROVIDER_TOOL_SUPPORT[modelDescription.provider];
-  if (!providerSupport) {
-    return false;
-  }
-  return providerSupport(modelDescription.model) ?? false;
-}

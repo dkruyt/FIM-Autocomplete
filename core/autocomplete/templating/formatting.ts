@@ -2,7 +2,6 @@ import { getLastNUriRelativePathParts } from "../../util/uri";
 import {
   AutocompleteClipboardSnippet,
   AutocompleteCodeSnippet,
-  AutocompleteDiffSnippet,
   AutocompleteSnippet,
   AutocompleteSnippetType,
   AutocompleteStaticSnippet,
@@ -46,12 +45,6 @@ const formatCodeSnippet = (
   };
 };
 
-const formatDiffSnippet = (
-  snippet: AutocompleteDiffSnippet,
-): AutocompleteDiffSnippet => {
-  return snippet;
-};
-
 const formatStaticSnippet = (
   snippet: AutocompleteStaticSnippet,
 ): AutocompleteStaticSnippet => {
@@ -84,8 +77,6 @@ export const formatSnippets = (
         switch (snippet.type) {
           case AutocompleteSnippetType.Code:
             return formatCodeSnippet(snippet, workspaceDirs);
-          case AutocompleteSnippetType.Diff:
-            return formatDiffSnippet(snippet);
           case AutocompleteSnippetType.Clipboard:
             return formatClipboardSnippet(snippet, workspaceDirs);
           case AutocompleteSnippetType.Static:

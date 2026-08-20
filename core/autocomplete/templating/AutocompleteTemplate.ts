@@ -168,12 +168,10 @@ const qwenMultifileFimTemplate: AutocompleteTemplate = {
     );
 
     const fileContents = snippets
-      .map((snippet, i) => {
-        if (snippet.type === AutocompleteSnippetType.Diff) {
-          return `<|file_sep|>${getFileName(relativePaths[i])}\n${snippet.content}`;
-        }
-        return `<|file_sep|>${getFileName(relativePaths[i])}\n${snippet.content}`;
-      })
+      .map(
+        (snippet, i) =>
+          `<|file_sep|>${getFileName(relativePaths[i])}\n${snippet.content}`,
+      )
       .join("\n");
 
     const fullPrefix = `<|repo_name|>${reponame}\n${fileContents}\n<|file_sep|>${getFileName(
@@ -281,13 +279,10 @@ const codestralMultifileFimTemplate: AutocompleteTemplate = {
     );
 
     const otherFiles = snippets
-      .map((snippet, i) => {
-        if (snippet.type === AutocompleteSnippetType.Diff) {
-          return snippet.content;
-        }
-
-        return `+++++ ${getFileName(relativePaths[i])} \n${snippet.content}`;
-      })
+      .map(
+        (snippet, i) =>
+          `+++++ ${getFileName(relativePaths[i])} \n${snippet.content}`,
+      )
       .join("\n\n");
 
     return [
@@ -342,13 +337,10 @@ const mercuryMultifileFimTemplate: AutocompleteTemplate = {
     );
 
     const otherFiles = snippets
-      .map((snippet, i) => {
-        if (snippet.type === AutocompleteSnippetType.Diff) {
-          return snippet.content;
-        }
-
-        return `<|file_sep|>${getFileName(relativePaths[i])} \n${snippet.content}`;
-      })
+      .map(
+        (snippet, i) =>
+          `<|file_sep|>${getFileName(relativePaths[i])} \n${snippet.content}`,
+      )
       .join("\n\n");
 
     return [

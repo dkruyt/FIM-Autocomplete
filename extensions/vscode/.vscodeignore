@@ -4,9 +4,7 @@ build/**
 src/**
 # Only the icon needs to ship. README images are served from GitHub by absolute
 # URL, since the Marketplace does not resolve relative paths.
-media/icon.svg
 media/demo.gif
-media/ghost-text.png
 .gitignore
 .npmrc
 package-lock.json

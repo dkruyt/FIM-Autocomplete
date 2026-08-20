@@ -4,12 +4,10 @@ import { ContextRetrievalService } from "../context/ContextRetrievalService";
 import { GetLspDefinitionsFunction } from "../types";
 import { HelperVars } from "../util/HelperVars";
 import { openedFilesLruCache } from "../util/openedFilesLruCache";
-import { getDiffsFromCache } from "./gitDiffCache";
 
 import {
   AutocompleteClipboardSnippet,
   AutocompleteCodeSnippet,
-  AutocompleteDiffSnippet,
   AutocompleteSnippetType,
   AutocompleteStaticSnippet,
 } from "./types";
@@ -22,7 +20,6 @@ export interface SnippetPayload {
   ideSnippets: AutocompleteCodeSnippet[];
   recentlyEditedRangeSnippets: AutocompleteCodeSnippet[];
   recentlyVisitedRangesSnippets: AutocompleteCodeSnippet[];
-  diffSnippets: AutocompleteDiffSnippet[];
   clipboardSnippets: AutocompleteClipboardSnippet[];
   recentlyOpenedFileSnippets: AutocompleteCodeSnippet[];
   staticSnippet: AutocompleteStaticSnippet[];
@@ -90,19 +87,6 @@ const getClipboardSnippets = async (
       content: item.text,
       copiedAt: item.copiedAt,
       type: AutocompleteSnippetType.Clipboard,
-    };
-  });
-};
-
-const getDiffSnippets = async (
-  ide: IDE,
-): Promise<AutocompleteDiffSnippet[]> => {
-  const diffs = await getDiffsFromCache(ide);
-
-  return diffs.map((item) => {
-    return {
-      content: item,
-      type: AutocompleteSnippetType.Diff,
     };
   });
 };
@@ -184,7 +168,6 @@ export const getAllSnippets = async ({
     rootPathSnippets,
     importDefinitionSnippets,
     ideSnippets,
-    diffSnippets,
     clipboardSnippets,
     recentlyOpenedFileSnippets,
     staticSnippet,
@@ -196,7 +179,6 @@ export const getAllSnippets = async ({
     IDE_SNIPPETS_ENABLED
       ? racePromise(getIdeSnippets(helper, ide, getDefinitionsFromLsp))
       : [],
-    [], // racePromise(getDiffSnippets(ide)) // temporarily disabled, see https://github.com/continuedev/continue/pull/5882,
     racePromise(getClipboardSnippets(ide)),
     racePromise(getSnippetsFromRecentlyOpenedFiles(helper, ide)), // giving this one a little more time to complete
     helper.options.experimental_enableStaticContextualization
@@ -209,7 +191,6 @@ export const getAllSnippets = async ({
     importDefinitionSnippets,
     ideSnippets,
     recentlyEditedRangeSnippets,
-    diffSnippets,
     clipboardSnippets,
     recentlyVisitedRangesSnippets: helper.input.recentlyVisitedRanges,
     recentlyOpenedFileSnippets,
@@ -235,7 +216,6 @@ export const getAllSnippetsWithoutRace = async ({
     rootPathSnippets,
     importDefinitionSnippets,
     ideSnippets,
-    diffSnippets,
     clipboardSnippets,
     recentlyOpenedFileSnippets,
     staticSnippet,
@@ -245,7 +225,6 @@ export const getAllSnippetsWithoutRace = async ({
     IDE_SNIPPETS_ENABLED
       ? getIdeSnippets(helper, ide, getDefinitionsFromLsp)
       : [],
-    [], // racePromise(getDiffSnippets(ide)) // temporarily disabled, see https://github.com/continuedev/continue/pull/5882,
     getClipboardSnippets(ide),
     getSnippetsFromRecentlyOpenedFiles(helper, ide),
     helper.options.experimental_enableStaticContextualization
@@ -258,7 +237,6 @@ export const getAllSnippetsWithoutRace = async ({
     importDefinitionSnippets,
     ideSnippets,
     recentlyEditedRangeSnippets,
-    diffSnippets,
     clipboardSnippets,
     recentlyVisitedRangesSnippets: helper.input.recentlyVisitedRanges,
     recentlyOpenedFileSnippets,
