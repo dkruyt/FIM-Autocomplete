@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0
+
+### Internal cleanup
+
+No user-facing change. The last of the code inherited from Continue that no
+longer had a caller is gone: the Jaccard-similarity snippet ranker, the git-diff
+snippet source (disabled upstream since continuedev/continue#5882, and reduced to
+an empty array here long before this), and a scattering of unreferenced helpers
+in `core/diff`, `core/llm/toolSupport`, `core/tools/parseArgs` and the extension's
+`util.ts`.
+
+The `experimental_includeDiff` option went with the diff snippets. It was never
+reachable from VS Code settings and gated a source that always produced nothing,
+so no configuration needs updating.
+
 ## 0.2.5
 
 ### Model settings are editable in the Settings UI

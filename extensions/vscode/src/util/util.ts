@@ -4,7 +4,7 @@ import { EXTENSION_ID } from "./constants";
 
 export function getExtensionVersion(): string {
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
-  return extension?.packageJSON.version || "0.2.5";
+  return extension?.packageJSON.version || "0.3.0";
 }
 
 export function isExtensionPrerelease(): boolean {

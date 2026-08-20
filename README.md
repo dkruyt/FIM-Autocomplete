@@ -15,7 +15,7 @@ Grab the `.vsix` from the [latest release](https://github.com/dkruyt/FIM-Autocom
 and install it:
 
 ```bash
-code --install-extension fim-autocomplete-0.2.5.vsix
+code --install-extension fim-autocomplete-0.3.0.vsix
 ```
 
 Then configure a model — nothing happens until you do.
