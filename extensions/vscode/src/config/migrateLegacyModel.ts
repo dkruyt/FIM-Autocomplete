@@ -5,7 +5,7 @@ import { EXTENSION_NAME } from "../util/constants";
 import { FimModelSetting } from "./FimConfig";
 
 /**
- * Fields of the pre-0.2.0 `fim.model` object that each become their own
+ * Fields of the pre-0.2.5 `fim.model` object that each become their own
  * setting. `model` is handled separately — it keeps the same key, so it has to
  * be written last.
  */
@@ -26,7 +26,7 @@ type Scope = [
 ];
 
 /**
- * Until 0.2.0 the whole completion model was one `fim.model` object, which the
+ * Until 0.2.5 the whole completion model was one `fim.model` object, which the
  * Settings UI refuses to render. Rewrite it into the flat `fim.*` keys, in
  * whichever scopes the user set it.
  *

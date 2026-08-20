@@ -87,7 +87,7 @@ describe("readModelSetting", () => {
     expect(setting.model).toBe("codellama:7b");
   });
 
-  it("still reads a pre-0.2.0 fim.model object", () => {
+  it("still reads a pre-0.2.5 fim.model object", () => {
     expect(
       readModelSetting(
         config({

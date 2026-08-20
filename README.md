@@ -15,7 +15,7 @@ Grab the `.vsix` from the [latest release](https://github.com/dkruyt/FIM-Autocom
 and install it:
 
 ```bash
-code --install-extension fim-autocomplete-0.2.0.vsix
+code --install-extension fim-autocomplete-0.2.5.vsix
 ```
 
 Then configure a model — nothing happens until you do.
@@ -68,7 +68,7 @@ See the full option list under **Settings → Extensions → FIM Autocomplete**,
 search `fim.` in `settings.json`.
 
 > Upgrading from 0.1.0? The single `fim.model` object became one setting per
-> field. Your existing config is migrated automatically the first time 0.2.0
+> field. Your existing config is migrated automatically the first time 0.2.5
 > starts.
 
 ## The tutorial file
