@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0
+## 0.2.5
 
 ### Model settings are editable in the Settings UI
 

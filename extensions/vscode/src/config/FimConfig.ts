@@ -36,7 +36,7 @@ function nonEmptyObject<T extends object>(value: T | undefined): T | undefined {
  * Reads the completion model out of the flat `fim.provider` / `fim.model` /
  * `fim.apiBase` / ... settings, so all of it is editable in the Settings UI.
  *
- * Before 0.2.0 the whole thing was one `fim.model` object. That shape is still
+ * Before 0.2.5 the whole thing was one `fim.model` object. That shape is still
  * honoured as a fallback — migrateLegacyModelSetting() rewrites it on startup,
  * but a scope it skipped, or a window that has not reloaded yet, must keep
  * working. Flat keys win over it, key by key.
