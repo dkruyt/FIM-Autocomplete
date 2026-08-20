@@ -1,6 +1,5 @@
 export enum AutocompleteSnippetType {
   Code = "code",
-  Diff = "diff",
   Clipboard = "clipboard",
   Static = "static",
 }
@@ -15,10 +14,6 @@ export interface AutocompleteCodeSnippet extends BaseAutocompleteSnippet {
   type: AutocompleteSnippetType.Code;
 }
 
-export interface AutocompleteDiffSnippet extends BaseAutocompleteSnippet {
-  type: AutocompleteSnippetType.Diff;
-}
-
 export interface AutocompleteClipboardSnippet extends BaseAutocompleteSnippet {
   type: AutocompleteSnippetType.Clipboard;
   copiedAt: string;
@@ -31,6 +26,5 @@ export interface AutocompleteStaticSnippet extends BaseAutocompleteSnippet {
 
 export type AutocompleteSnippet =
   | AutocompleteCodeSnippet
-  | AutocompleteDiffSnippet
   | AutocompleteClipboardSnippet
   | AutocompleteStaticSnippet;

@@ -6,7 +6,6 @@
 import { describe, expect, test } from "vitest";
 import {
   AutocompleteCodeSnippet,
-  AutocompleteDiffSnippet,
   AutocompleteSnippetType,
 } from "../../snippets/types";
 import { HelperVars } from "../../util/HelperVars";
@@ -34,11 +33,6 @@ describe("formatOpenedFilesContext main function tests", () => {
   ): AutocompleteCodeSnippet => ({
     type: AutocompleteSnippetType.Code,
     filepath,
-    content,
-  });
-
-  const createDiffSnippet = (content: string): AutocompleteDiffSnippet => ({
-    type: AutocompleteSnippetType.Diff,
     content,
   });
 
@@ -144,7 +138,9 @@ describe("formatOpenedFilesContext main function tests", () => {
       createCodeSnippet("file2.ts", "content of file 2"),
     ];
 
-    const alreadyAddedSnippets = [createDiffSnippet("diff content")];
+    const alreadyAddedSnippets = [
+      createCodeSnippet("already-added.ts", "existing content"),
+    ];
 
     const result = formatOpenedFilesContext(
       snippets,

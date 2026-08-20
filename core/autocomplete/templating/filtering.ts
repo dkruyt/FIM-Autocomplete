@@ -49,7 +49,6 @@ export const getSnippets = (
     clipboard: payload.clipboardSnippets,
     recentlyVisitedRanges: payload.recentlyVisitedRangesSnippets,
     recentlyEditedRanges: payload.recentlyEditedRangeSnippets,
-    diff: payload.diffSnippets,
     recentlyOpenedFiles: payload.recentlyOpenedFileSnippets,
     base: shuffleArray(
       filterSnippetsAlreadyInCaretWindow(
@@ -99,13 +98,7 @@ export const getSnippets = (
       defaultPriority: 4,
       snippets: payload.recentlyEditedRangeSnippets,
     },
-    {
-      key: "diff",
-      enabledOrPriority: helper.options.experimental_includeDiff,
-      defaultPriority: 5,
-      snippets: payload.diffSnippets,
-      // TODO: diff is commonly too large, thus anything lower in priority is not included.
-    },
+
     {
       key: "base",
       enabledOrPriority: true,
@@ -120,8 +113,6 @@ export const getSnippets = (
           helper.prunedCaretWindow,
         ),
       ),
-      // TODO: Add this too to experimental config, maybe move upper in the order, since it's almost
-      // always not inlucded due to diff being commonly large
     },
   ];
 

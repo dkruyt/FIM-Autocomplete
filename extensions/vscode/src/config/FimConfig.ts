@@ -135,9 +135,7 @@ export class FimConfig implements FimConfigProvider {
       experimental_includeRecentlyEditedRanges: c.get<boolean>(
         "experimental.includeRecentlyEditedRanges",
       ),
-      // No experimental.includeDiff: the diff snippet source is disabled in
-      // core/autocomplete/snippets/getAllSnippets.ts, so the setting would do
-      // nothing. Don't advertise a switch that isn't wired to anything.
+
       experimental_enableStaticContextualization: c.get<boolean>(
         "experimental.staticContextualization",
       ),
