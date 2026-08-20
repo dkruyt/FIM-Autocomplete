@@ -330,6 +330,11 @@
         "title": "Open Autocomplete Menu"
       },
       {
+        "command": "fim.openTutorial",
+        "category": "FIM",
+        "title": "Open Tutorial"
+      },
+      {
         "command": "fim.selectModel",
         "category": "FIM",
         "title": "Select Model"

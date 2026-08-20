@@ -78,6 +78,9 @@ void (async () => {
   }
 
   validateFilesPresent([
+    // the tutorial opened on first install
+    "tutorial/tutorial.py",
+
     // tree-sitter queries for the autocomplete context sources
     "tree-sitter/import-queries/typescript.scm",
     "tree-sitter/root-path-context-queries/typescript/function_declaration.scm",

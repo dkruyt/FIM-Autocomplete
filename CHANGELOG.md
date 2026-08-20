@@ -32,6 +32,15 @@ whichever scopes it was set, and is still read as a fallback if it survives
 anywhere. **FIM: Select Model** writes the new keys, and now clears an API key
 left over from a previous provider instead of carrying it across.
 
+### A tutorial that opens on install
+
+The first activation after installing opens `tutorial.py` — the status bar, the
+keybindings, fill-in-the-middle and the settings worth knowing, each with an
+exercise to try it on. It is copied to `~/.fim/tutorial.py` and never
+overwritten after that, so it doubles as a scratchpad. **FIM: Open Tutorial**
+and the status bar menu reopen it. If no model is configured when it opens, the
+model wizard is offered alongside it.
+
 ## 0.1.0
 
 First release.

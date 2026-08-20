@@ -71,6 +71,13 @@ search `fim.` in `settings.json`.
 > field. Your existing config is migrated automatically the first time 0.2.0
 > starts.
 
+## The tutorial file
+
+The first start after installing opens `tutorial.py`: the keybindings, the status
+bar and the settings that matter, each with something to try it on. It's a
+scratchpad, never executed, kept at `~/.fim/tutorial.py`. Reopen it with
+**FIM: Open Tutorial** or from the status bar menu.
+
 ## Using it
 
 Type, pause, and the suggestion shows up as grey ghost text after the cursor.

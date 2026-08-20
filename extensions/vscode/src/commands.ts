@@ -15,6 +15,7 @@ import {
 } from "./autocomplete/statusBar";
 import { FimConfig } from "./config/FimConfig";
 import { selectModel } from "./config/modelQuickPick";
+import { openTutorial } from "./tutorial";
 import { EXTENSION_NAME } from "./util/constants";
 import { VsCodeIde } from "./VsCodeIde";
 
@@ -95,6 +96,8 @@ export function registerAllCommands(
 
     [ns("selectModel")]: () => selectModel(),
 
+    [ns("openTutorial")]: () => openTutorial(context),
+
     [ns("openConfigMenu")]: async () => {
       const quickPick = vscode.window.createQuickPick();
 
@@ -103,6 +106,7 @@ export function registerAllCommands(
 
       const modelLabel = "$(server) Select model…";
       const settingsLabel = "$(gear) Open settings";
+      const tutorialLabel = "$(book) Open tutorial";
       quickPick.items = [
         {
           label: modelLabel,
@@ -119,6 +123,10 @@ export function registerAllCommands(
         },
         { label: "", kind: vscode.QuickPickItemKind.Separator },
         {
+          label: tutorialLabel,
+          detail: "A file to try autocomplete in",
+        },
+        {
           label: settingsLabel,
           detail: "All autocomplete options",
         },
@@ -131,6 +139,11 @@ export function registerAllCommands(
 
         if (label === modelLabel) {
           void selectModel();
+          return;
+        }
+
+        if (label === tutorialLabel) {
+          void openTutorial(context);
           return;
         }
 
