@@ -3,6 +3,11 @@ import { TabAutocompleteOptions } from "../index.js";
 export const DEFAULT_AUTOCOMPLETE_OPTS: TabAutocompleteOptions = {
   disable: false,
   maxPromptTokens: 1024,
+  // Ghost text is a few lines, not an essay. The shared LLM default reserves
+  // 4096 output tokens, which both wastes prompt budget and -- on any model
+  // whose context is at or below that -- drives the prompt budget negative and
+  // silently blanks the request. See renderPromptWithTokenLimit.
+  maxCompletionTokens: 512,
   prefixPercentage: 0.3,
   maxSuffixPercentage: 0.2,
   debounceDelay: 350,

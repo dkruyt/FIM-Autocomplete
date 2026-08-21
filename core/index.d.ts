@@ -832,6 +832,8 @@ export interface ModelDescription {
 export interface TabAutocompleteOptions {
   disable: boolean;
   maxPromptTokens: number;
+  /** Output tokens reserved for the completion itself. */
+  maxCompletionTokens: number;
   debounceDelay: number;
   modelTimeout: number;
   maxSuffixPercentage: number;
