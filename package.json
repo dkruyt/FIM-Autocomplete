@@ -1,6 +1,6 @@
 {
   "name": "fim-autocomplete-monorepo",
-  "version": "0.3.1",
+  "version": "0.4.0-pre",
   "private": true,
   "license": "Apache-2.0",
   "description": "Monorepo root for the FIM Autocomplete VS Code extension. Not published.",
