@@ -119,6 +119,9 @@ export function registerAllCommands(
 
     [ns("showLogs")]: () => provider.logger.show(),
 
+    [ns("showStats")]: () =>
+      provider.logger.showStats(provider.stats.summarize()),
+
     [ns("selectModel")]: () => selectModel(),
 
     [ns("openTutorial")]: () => openTutorial(context),

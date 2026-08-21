@@ -1,3 +1,4 @@
+import { AutocompleteStatsSummary } from "core/autocomplete/util/AutocompleteStats";
 import { AutocompleteOutcome } from "core/autocomplete/util/types";
 import * as vscode from "vscode";
 
@@ -101,6 +102,48 @@ export class AutocompleteLogger {
         `Logging is off. Set "${EXTENSION_NAME}.debug": true in settings to record completions here.`,
       );
     }
+    channel.show(true);
+  }
+
+  /**
+   * Render the session tally into the channel and reveal it.
+   *
+   * Not gated on `debug`: the numbers are counters the provider keeps anyway,
+   * and they are the answer to "is this model worth using", which is a question
+   * you ask before thinking to turn debug logging on.
+   */
+  public showStats(summary: AutocompleteStatsSummary) {
+    const channel = this.getChannel();
+    const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
+
+    if (summary.shown === 0) {
+      channel.appendLine(
+        "No completions recorded yet this session. Numbers appear once suggestions have been shown and accepted or dismissed.",
+      );
+      channel.show(true);
+      return;
+    }
+
+    const lines = [
+      `--- completion stats (this session, last ${summary.shown}) ---`,
+      `shown        ${summary.shown}`,
+      `accepted     ${summary.accepted} in full, ${summary.partial} in part`,
+      `dismissed    ${summary.rejected}`,
+      `acceptance   ${pct(summary.acceptanceRate)}`,
+      `cache hits   ${pct(summary.cacheHitRate)}`,
+      `latency      p50 ${summary.latencyP50}ms, p90 ${summary.latencyP90}ms (uncached)`,
+      `mean length  ${summary.meanLines.toFixed(1)} line(s)`,
+    ];
+    if (summary.byModel.length > 1) {
+      lines.push("by model");
+      for (const m of summary.byModel) {
+        lines.push(
+          `  ${m.model}: ${m.shown} shown, ${pct(m.acceptanceRate)} accepted`,
+        );
+      }
+    }
+    lines.push("");
+    channel.appendLine(lines.join("\n"));
     channel.show(true);
   }
 

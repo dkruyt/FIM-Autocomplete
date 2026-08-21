@@ -122,6 +122,11 @@ export class CompletionProvider {
     this.loggingService.accept(completionId);
   }
 
+  /** Local-only tally of how completions have fared this session. */
+  public get stats() {
+    return this.loggingService.stats;
+  }
+
   public partialAccept(completionId: string) {
     this.loggingService.partialAccept(completionId);
   }

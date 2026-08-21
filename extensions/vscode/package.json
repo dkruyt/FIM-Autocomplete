@@ -415,6 +415,11 @@
         "command": "fim.showLogs",
         "category": "FIM",
         "title": "Show Logs"
+      },
+      {
+        "command": "fim.showStats",
+        "category": "FIM",
+        "title": "Show Completion Stats"
       }
     ],
     "keybindings": [

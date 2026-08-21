@@ -1,5 +1,6 @@
 import { COUNT_COMPLETION_REJECTED_AFTER } from "../../util/parameters";
 
+import { AutocompleteStats } from "./AutocompleteStats";
 import { AutocompleteOutcome } from "./types";
 
 export class AutocompleteLoggingService {
@@ -9,6 +10,8 @@ export class AutocompleteLoggingService {
   private _outcomes = new Map<string, AutocompleteOutcome>();
   _lastDisplayedCompletion: { id: string; displayedAt: number } | undefined =
     undefined;
+  /** Local-only outcome tally; see AutocompleteStats. */
+  public readonly stats = new AutocompleteStats();
 
   public createAbortController(completionId: string): AbortController {
     const abortController = new AbortController();
@@ -36,6 +39,7 @@ export class AutocompleteLoggingService {
     if (this._outcomes.has(completionId)) {
       const outcome = this._outcomes.get(completionId)!;
       outcome.accepted = true;
+      this.stats.record(outcome, "accepted");
       this._outcomes.delete(completionId);
       return outcome;
     }
@@ -54,8 +58,11 @@ export class AutocompleteLoggingService {
     }
 
     const outcome = this._outcomes.get(completionId);
-    if (outcome) {
+    if (outcome && !outcome.partiallyAccepted) {
+      // Only the first partial accept counts; accepting three words in a row
+      // is one useful suggestion, not three.
       outcome.partiallyAccepted = true;
+      this.stats.record(outcome, "partial");
     }
   }
 
@@ -75,6 +82,9 @@ export class AutocompleteLoggingService {
       // Wait 10 seconds, then assume it wasn't accepted
       outcome.accepted = false;
       this._logRejectionTimeouts.delete(completionId);
+      if (!outcome.partiallyAccepted) {
+        this.stats.record(outcome, "rejected");
+      }
     }, COUNT_COMPLETION_REJECTED_AFTER);
     this._outcomes.set(completionId, outcome);
     this._logRejectionTimeouts.set(completionId, logRejectionTimeout);
