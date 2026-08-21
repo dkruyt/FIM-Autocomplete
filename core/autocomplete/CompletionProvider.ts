@@ -10,7 +10,7 @@ import { BracketMatchingService } from "./filtering/BracketMatchingService.js";
 import { CompletionStreamer } from "./generation/CompletionStreamer.js";
 import { postprocessCompletion } from "./postprocessing/index.js";
 import { shouldPrefilter } from "./prefiltering/index.js";
-import { getAllSnippetsWithoutRace } from "./snippets/index.js";
+import { getAllSnippets } from "./snippets/index.js";
 import { renderPromptWithTokenLimit } from "./templating/index.js";
 import {
   AutocompleteConfigProvider,
@@ -129,6 +129,10 @@ export class CompletionProvider {
     );
   }
 
+  public partialAccept(completionId: string) {
+    this.loggingService.partialAccept(completionId);
+  }
+
   public markDisplayed(completionId: string, outcome: AutocompleteOutcome) {
     this.loggingService.markDisplayed(completionId, outcome);
   }
@@ -192,7 +196,7 @@ export class CompletionProvider {
       }
 
       const [snippetPayload, workspaceDirs] = await Promise.all([
-        getAllSnippetsWithoutRace({
+        getAllSnippets({
           helper,
           ide: this.ide,
           getDefinitionsFromLsp: this.getDefinitionsFromLsp,
@@ -275,6 +279,16 @@ export class CompletionProvider {
         completionId: helper.input.completionId,
         timestamp: new Date().toISOString(),
         ...helper.options,
+        contextStats: {
+          rootPath: snippetPayload.rootPathSnippets.length,
+          importDefinitions: snippetPayload.importDefinitionSnippets.length,
+          ideLsp: snippetPayload.ideSnippets.length,
+          recentlyEdited: snippetPayload.recentlyEditedRangeSnippets.length,
+          recentlyVisited: snippetPayload.recentlyVisitedRangesSnippets.length,
+          recentlyOpened: snippetPayload.recentlyOpenedFileSnippets.length,
+          clipboard: snippetPayload.clipboardSnippets.length,
+          staticContext: snippetPayload.staticSnippet.length,
+        },
       };
 
       if (options.experimental_enableStaticContextualization) {
@@ -282,8 +296,12 @@ export class CompletionProvider {
       }
 
       if (!outcome.cacheHit && helper.options.useCache) {
+        // Must be keyed on the same string the lookup above uses. `outcome.prefix`
+        // is the *compiled* prefix -- it carries the formatted snippet blob and a
+        // trailing `// path/to/file` comment -- so writing that key meant the
+        // longest-prefix lookup could never match and the cache never hit.
         void cache
-          .put(outcome.prefix, outcome.completion)
+          .put(helper.prunedPrefix, outcome.completion)
           .catch((e) => console.warn(`Failed to save to cache: ${e.message}`));
       }
 

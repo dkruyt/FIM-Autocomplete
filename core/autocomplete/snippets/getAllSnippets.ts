@@ -12,7 +12,10 @@ import {
   AutocompleteStaticSnippet,
 } from "./types";
 
-const IDE_SNIPPETS_ENABLED = false; // ideSnippets is not used, so it's temporarily disabled
+// LSP-derived definitions around the cursor. Time-boxed like every other
+// source (see racePromise below), so a slow language server degrades the
+// completion's context rather than stalling the request.
+const IDE_SNIPPETS_ENABLED = true;
 
 export interface SnippetPayload {
   rootPathSnippets: AutocompleteCodeSnippet[];
@@ -25,7 +28,27 @@ export interface SnippetPayload {
   staticSnippet: AutocompleteStaticSnippet[];
 }
 
-function racePromise<T>(promise: Promise<T[]>, timeout = 100): Promise<T[]> {
+/** Budget for a single context source before we give up and complete without it. */
+const DEFAULT_SNIPPET_TIMEOUT_MS = 100;
+
+/**
+ * Static contextualization is opt-in and deliberately expensive (it resolves the
+ * type of the hole via hover, then crawls transitively relevant types). It gets a
+ * larger budget than the other sources -- but still a bounded one.
+ */
+const STATIC_CONTEXT_TIMEOUT_MS = 1000;
+
+/**
+ * Upper bound on how many recently-opened files we read per completion.
+ * Matches `numFilesConsidered` in `formatOpenedFilesContext`, which is the
+ * most that can survive ranking.
+ */
+const MAX_OPENED_FILES_TO_READ = 10;
+
+function racePromise<T>(
+  promise: Promise<T[]>,
+  timeout = DEFAULT_SNIPPET_TIMEOUT_MS,
+): Promise<T[]> {
   const timeoutPromise = new Promise<T[]>((resolve) => {
     setTimeout(() => resolve([]), timeout);
   });
@@ -102,10 +125,14 @@ const getSnippetsFromRecentlyOpenedFiles = async (
   try {
     const currentFileUri = `${helper.filepath}`;
 
-    // Get all file URIs excluding the current file
+    // Most-recent first, excluding the current file. Only the top
+    // `MAX_OPENED_FILES_TO_READ` can ever reach the prompt (see
+    // `formatOpenedFilesContext`), so reading the whole cache is wasted I/O on
+    // every keystroke.
     const fileUrisToRead = [...openedFilesLruCache.entriesDescending()]
       .filter(([fileUri, _]) => fileUri !== currentFileUri)
-      .map(([fileUri, _]) => fileUri);
+      .map(([fileUri, _]) => fileUri)
+      .slice(0, MAX_OPENED_FILES_TO_READ);
 
     // Create an array of promises that each read a file with timeout
     const fileReadPromises = fileUrisToRead.map((fileUri) => {
@@ -180,55 +207,12 @@ export const getAllSnippets = async ({
       ? racePromise(getIdeSnippets(helper, ide, getDefinitionsFromLsp))
       : [],
     racePromise(getClipboardSnippets(ide)),
-    racePromise(getSnippetsFromRecentlyOpenedFiles(helper, ide)), // giving this one a little more time to complete
+    racePromise(getSnippetsFromRecentlyOpenedFiles(helper, ide)),
     helper.options.experimental_enableStaticContextualization
-      ? racePromise(contextRetrievalService.getStaticContextSnippets(helper))
-      : [],
-  ]);
-
-  return {
-    rootPathSnippets,
-    importDefinitionSnippets,
-    ideSnippets,
-    recentlyEditedRangeSnippets,
-    clipboardSnippets,
-    recentlyVisitedRangesSnippets: helper.input.recentlyVisitedRanges,
-    recentlyOpenedFileSnippets,
-    staticSnippet,
-  };
-};
-
-export const getAllSnippetsWithoutRace = async ({
-  helper,
-  ide,
-  getDefinitionsFromLsp,
-  contextRetrievalService,
-}: {
-  helper: HelperVars;
-  ide: IDE;
-  getDefinitionsFromLsp: GetLspDefinitionsFunction;
-  contextRetrievalService: ContextRetrievalService;
-}): Promise<SnippetPayload> => {
-  const recentlyEditedRangeSnippets =
-    getSnippetsFromRecentlyEditedRanges(helper);
-
-  const [
-    rootPathSnippets,
-    importDefinitionSnippets,
-    ideSnippets,
-    clipboardSnippets,
-    recentlyOpenedFileSnippets,
-    staticSnippet,
-  ] = await Promise.all([
-    contextRetrievalService.getRootPathSnippets(helper),
-    contextRetrievalService.getSnippetsFromImportDefinitions(helper),
-    IDE_SNIPPETS_ENABLED
-      ? getIdeSnippets(helper, ide, getDefinitionsFromLsp)
-      : [],
-    getClipboardSnippets(ide),
-    getSnippetsFromRecentlyOpenedFiles(helper, ide),
-    helper.options.experimental_enableStaticContextualization
-      ? contextRetrievalService.getStaticContextSnippets(helper)
+      ? racePromise(
+          contextRetrievalService.getStaticContextSnippets(helper),
+          STATIC_CONTEXT_TIMEOUT_MS,
+        )
       : [],
   ]);
 

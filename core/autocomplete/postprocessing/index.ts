@@ -89,6 +89,71 @@ function removeBackticks(completion: string): string {
   return completion;
 }
 
+/**
+ * Number of leading completion lines compared against the prefix. A model that
+ * is going to restate the prefix does it immediately, so there is no reason to
+ * scan deeper.
+ */
+const MAX_ECHO_LINES_TO_CHECK = 6;
+/** Consecutive matching lines before we call it an echo rather than a coincidence. */
+const MIN_ECHO_RUN = 2;
+/**
+ * A run made only of `}`, `)`, `else {` and the like is normal completion
+ * output, not an echo -- at least one matched line has to carry real content.
+ */
+const MIN_SUBSTANTIAL_LINE_LENGTH = 8;
+
+/**
+ * True when the completion opens by replaying a contiguous run of the lines
+ * immediately above the cursor.
+ *
+ * Weaker models answer a fill-in-the-middle prompt by restating the enclosing
+ * function and stopping where the cursor was, which is worse than no suggestion
+ * at all: it looks plausible and duplicates code on accept. `rewritesLineAbove`
+ * only compares a single line, and `isExtremeRepetition` looks at
+ * self-similarity within the completion rather than at the prefix, so neither
+ * catches a multi-line echo.
+ */
+function echoesPrefix(completion: string, prefix: string): boolean {
+  const prefixLines = prefix
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+  const completionLines = completion
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+    .slice(0, MAX_ECHO_LINES_TO_CHECK);
+
+  if (
+    prefixLines.length < MIN_ECHO_RUN ||
+    completionLines.length < MIN_ECHO_RUN
+  ) {
+    return false;
+  }
+
+  // Try every starting point in the prefix, longest-run-wins is not needed --
+  // any run of MIN_ECHO_RUN that includes a substantial line is enough.
+  for (let start = 0; start <= prefixLines.length - MIN_ECHO_RUN; start++) {
+    let run = 0;
+    let sawSubstantial = false;
+    while (
+      run < completionLines.length &&
+      start + run < prefixLines.length &&
+      completionLines[run] === prefixLines[start + run]
+    ) {
+      if (completionLines[run].length >= MIN_SUBSTANTIAL_LINE_LENGTH) {
+        sawSubstantial = true;
+      }
+      run++;
+    }
+    if (run >= MIN_ECHO_RUN && sawSubstantial) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function postprocessCompletion({
   completion,
   llm,
@@ -112,6 +177,11 @@ export function postprocessCompletion({
 
   // Dont return if it's just a repeat of the line above
   if (rewritesLineAbove(completion, prefix)) {
+    return undefined;
+  }
+
+  // ...or of a run of lines above
+  if (echoesPrefix(completion, prefix)) {
     return undefined;
   }
 

@@ -36,6 +36,7 @@ export async function activateExtension(context: vscode.ExtensionContext) {
   context.subscriptions.push(monitorBatteryChanges(battery));
 
   const provider = new FimCompletionProvider(config, ide);
+  context.subscriptions.push(provider);
   context.subscriptions.push(
     vscode.languages.registerInlineCompletionItemProvider(
       [{ pattern: "**" }],

@@ -1,5 +1,56 @@
 # Changelog
 
+## 0.3.1
+
+### Fixed
+
+**Four of eight context sources never ran.** LSP definitions sat behind a
+disabled flag, the recently-edited listener was commented out, the
+recently-visited service was never subscribed to a selection event, and the
+recently-opened cache was read on every completion but never written.
+Autocomplete was generating from a fraction of the context it reported having.
+
+**The completion cache could never hit.** Reads and writes used different keys,
+so every completion was a fresh generation.
+
+**Multi-line completions were truncated to one line against remote endpoints.**
+Both streaming budgets started when the request was made rather than when the
+first token arrived, so time spent waiting for the model counted against the
+time it was allowed to generate. A model returning four lines delivered one. The
+character-level cutoff also fired upstream of line assembly, which could emit a
+suggestion broken mid-expression.
+
+**An empty prompt could be sent to the model.** Autocomplete reserved 4096
+output tokens — a figure sized for chat — so any model with a context length at
+or below roughly 4100 was left with no room for a prompt at all, and the request
+went out with an empty one. Requests now reserve 512 output tokens, and a
+context budget that cannot be met raises a clear error instead of silently
+sending nothing.
+
+**Weak models could suggest a copy of your own code.** A completion that
+restates the enclosing function and stops at the cursor now gets rejected.
+
+**A single malformed context snippet aborted the whole completion**, leaving no
+suggestion and no explanation.
+
+### Changed
+
+- `fim.modelTimeout` now defaults to 1000 ms, up from 150 ms. The old default
+  fired routinely against any non-local model and cut completions short.
+- `fim.showWhateverWeHaveAtXMs` (300 ms) is now an exposed setting. It controls
+  when partial output is shown, and is the knob to reach for if completions feel
+  slow to appear.
+- Requests reserve 512 output tokens instead of 4096.
+
+### Added
+
+- `fim.debug` and the **FIM: Show Logs** command open a "FIM Autocomplete"
+  output channel reporting, per completion, which context sources contributed,
+  token counts, cache hits and latency.
+- **FIM: Accept Next Word** (`cmd+right` / `ctrl+right`) and **FIM: Accept Next
+  Line** (`cmd+down` / `ctrl+down`). Partial acceptances are now recorded as
+  such rather than counted as rejections.
+
 ## 0.3.0
 
 ### Internal cleanup

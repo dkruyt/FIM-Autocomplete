@@ -103,6 +103,39 @@ describe("stopAfterMaxProcessingTime", () => {
     dateSpy.mockRestore();
   });
 
+  it("does not count time-to-first-token against the budget", async () => {
+    // A slow endpoint that then streams quickly: the whole completion must
+    // survive. Measuring from subscription instead of from the first chunk cut
+    // real completions down to a single line against any remote model.
+    let currentTime = 0;
+    const originalDateNow = Date.now;
+    Date.now = vi.fn(() => currentTime);
+
+    async function* slowToStart(): AsyncGenerator<string> {
+      // 5s of waiting before the model says anything, against a 500ms budget.
+      currentTime = 5000;
+      for (let i = 0; i < 30; i++) {
+        currentTime += 10; // then 10ms per chunk -- well inside the budget
+        yield `chunk-${i}`;
+      }
+    }
+
+    const fullStop = vi.fn();
+    const outputs: string[] = [];
+    for await (const chunk of stopAfterMaxProcessingTime(
+      slowToStart(),
+      500,
+      fullStop,
+    )) {
+      outputs.push(chunk);
+    }
+
+    expect(outputs.length).toBe(30);
+    expect(fullStop).not.toHaveBeenCalled();
+
+    Date.now = originalDateNow;
+  });
+
   it("should handle empty stream gracefully", async () => {
     const mockStream = createMockStream([]);
     const fullStop = vi.fn();

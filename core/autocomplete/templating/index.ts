@@ -5,13 +5,13 @@ import { AutocompleteLanguageInfo } from "../constants/AutocompleteLanguageInfo"
 import { HelperVars } from "../util/HelperVars";
 
 import { ILLM } from "../../index.js";
-import { DEFAULT_MAX_TOKENS } from "../../llm/constants.js";
 import {
   countTokens,
   getTokenCountingBufferSafety,
   pruneLinesFromBottom,
   pruneLinesFromTop,
 } from "../../llm/countTokens";
+import { DEFAULT_AUTOCOMPLETE_OPTS } from "../../util/parameters";
 import { getUriPathBasename } from "../../util/uri";
 import { SnippetPayload } from "../snippets";
 import { AutocompleteSnippet } from "../snippets/types";
@@ -25,9 +25,15 @@ import { getStopTokens } from "./getStopTokens";
 
 function getTemplate(helper: HelperVars): AutocompleteTemplate {
   if (helper.options.template) {
+    // A custom template still targets the same model, so keep that model's stop
+    // tokens. Dropping them let generation run until the hard processing
+    // timeout aborted it mid-stream, which surfaced as client disconnections in
+    // provider logs. Users can still add their own via `completionOptions.stop`
+    // (mergeJson concatenates arrays).
+    const modelTemplate = getTemplateForModel(helper.modelName);
     return {
       template: helper.options.template,
-      completionOptions: {},
+      completionOptions: modelTemplate.completionOptions,
       compilePrefixSuffix: undefined,
     };
   }
@@ -149,6 +155,7 @@ export function renderPrompt({
     suffix: compiledSuffix,
     completionOptions: {
       ...completionOptions,
+      maxTokens: reservedCompletionTokens(completionOptions, helper),
       stop: stopTokens,
     },
   };
@@ -200,13 +207,50 @@ function buildPrompt(
   return { prompt, prefix, suffix };
 }
 
-function pruneLength(llm: ILLM, prompt: string): number {
-  const contextLength = llm.contextLength;
-  const reservedTokens = llm.completionOptions.maxTokens ?? DEFAULT_MAX_TOKENS;
-  const safetyBuffer = getTokenCountingBufferSafety(contextLength);
-  const maxAllowedPromptTokens = contextLength - reservedTokens - safetyBuffer;
+/**
+ * Output tokens to reserve for the completion. Deliberately *not*
+ * `llm.completionOptions.maxTokens`, whose 4096 default is sized for chat: for
+ * ghost text that both wastes prompt budget and, on a model whose context is at
+ * or below the reservation, drives the prompt budget negative.
+ */
+function reservedCompletionTokens(
+  completionOptions: Partial<CompletionOptions> | undefined,
+  helper: HelperVars,
+): number {
+  const reserved =
+    completionOptions?.maxTokens ?? helper.options.maxCompletionTokens;
+  // A missing or nonsensical value must not become NaN: every downstream
+  // comparison against NaN is false, so a negative budget would sail past the
+  // guard below and prune the prompt to "".
+  return Number.isFinite(reserved) && reserved > 0
+    ? reserved
+    : DEFAULT_AUTOCOMPLETE_OPTS.maxCompletionTokens;
+}
+
+/**
+ * Tokens the prompt may occupy, after reserving room for the completion itself
+ * and the token-counting safety buffer.
+ *
+ * Can go non-positive when the model's context is small relative to the
+ * reservation. Callers must handle that: pruning to a non-positive budget
+ * yields an empty prompt, and an empty prompt reaches the wire as a request the
+ * model can only answer with noise.
+ */
+function maxAllowedPromptTokens(llm: ILLM, reservedTokens: number): number {
+  return (
+    llm.contextLength -
+    reservedTokens -
+    getTokenCountingBufferSafety(llm.contextLength)
+  );
+}
+
+function pruneLength(
+  llm: ILLM,
+  prompt: string,
+  reservedTokens: number,
+): number {
   const promptTokenCount = countTokens(prompt, llm.model);
-  return promptTokenCount - maxAllowedPromptTokens;
+  return promptTokenCount - maxAllowedPromptTokens(llm, reservedTokens);
 }
 
 export function renderPromptWithTokenLimit({
@@ -254,9 +298,22 @@ export function renderPromptWithTokenLimit({
     reponame,
   );
 
+  const reservedTokens = reservedCompletionTokens(completionOptions, helper);
+
   // Truncate prefix and suffix if prompt tokens exceed maxAllowedPromptTokens
   if (llm) {
-    const prune = pruneLength(llm, prompt);
+    if (maxAllowedPromptTokens(llm, reservedTokens) <= 0) {
+      // Nothing can be pruned into a non-positive budget. Failing loudly beats
+      // pruning to "" and posting an empty prompt, which is what this looked
+      // like from the outside: a request the model can only answer with noise.
+      throw new Error(
+        `Autocomplete context budget is negative: the model's context length ` +
+          `(${llm.contextLength}) is too small to hold a prompt after reserving ` +
+          `${reservedTokens} tokens for the completion. Raise fim.contextLength ` +
+          `above ${reservedTokens}.`,
+      );
+    }
+    const prune = pruneLength(llm, prompt, reservedTokens);
     if (prune > 0) {
       const tokensToDrop = prune;
       const prefixTokenCount = countTokens(prefix, helper.modelName);
@@ -309,6 +366,7 @@ export function renderPromptWithTokenLimit({
     suffix: compiledSuffix,
     completionOptions: {
       ...completionOptions,
+      maxTokens: reservedTokens,
       stop: stopTokens,
     },
   };

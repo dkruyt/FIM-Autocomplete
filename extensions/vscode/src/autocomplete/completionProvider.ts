@@ -13,7 +13,9 @@ import { EXTENSION_NAME } from "../util/constants";
 import { handleLLMError } from "../util/errorHandling";
 import { VsCodeIde } from "../VsCodeIde";
 
+import { AutocompleteLogger } from "./logger";
 import { getDefinitionsFromLsp } from "./lsp";
+import { OpenedFilesTracker } from "./openedFiles";
 import { RecentlyEditedTracker } from "./recentlyEdited";
 import { RecentlyVisitedRangesService } from "./RecentlyVisitedRangesService";
 import {
@@ -41,6 +43,8 @@ export class FimCompletionProvider
 
   public recentlyVisitedRanges: RecentlyVisitedRangesService;
   public recentlyEditedTracker: RecentlyEditedTracker;
+  public openedFilesTracker: OpenedFilesTracker;
+  public logger = new AutocompleteLogger();
 
   constructor(
     private readonly config: FimConfigProvider,
@@ -57,6 +61,15 @@ export class FimCompletionProvider
     );
 
     this.recentlyVisitedRanges = new RecentlyVisitedRangesService(ide);
+    this.openedFilesTracker = new OpenedFilesTracker();
+  }
+
+  public dispose() {
+    this.recentlyEditedTracker.dispose();
+    this.recentlyVisitedRanges.dispose();
+    this.openedFilesTracker.dispose();
+    this.logger.dispose();
+    void this.completionProvider.dispose();
   }
 
   _lastShownCompletion: AutocompleteOutcome | undefined;
@@ -68,6 +81,18 @@ export class FimCompletionProvider
 
   public cancel() {
     this.completionProvider.cancel();
+  }
+
+  /**
+   * The user took the next word/line of the suggestion. VS Code handles the
+   * edit itself; we only need the bookkeeping so it isn't later recorded as a
+   * rejection.
+   */
+  public partialAccept() {
+    const completionId = this._lastShownCompletion?.completionId;
+    if (completionId) {
+      this.completionProvider.partialAccept(completionId);
+    }
   }
 
   public async provideInlineCompletionItems(
@@ -207,6 +232,7 @@ export class FimCompletionProvider
       // find it later.
       this.completionProvider.markDisplayed(completionId, outcome);
       this._lastShownCompletion = outcome;
+      this.logger.logOutcome(outcome);
 
       // Construct the range/text to show
       const startPos = selectedCompletionInfo?.range.start ?? position;

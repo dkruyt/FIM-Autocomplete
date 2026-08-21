@@ -644,18 +644,23 @@ export async function* showWhateverWeHaveAtXMs(
   lines: LineStream,
   ms: number,
 ): LineStream {
-  const startTime = Date.now();
-  let firstNonWhitespaceLineYielded = false;
+  // The clock starts once there is something worth showing, not when the
+  // generator is subscribed to. Measuring from subscription folds
+  // time-to-first-token into the budget, so any endpoint slower than `ms` to
+  // produce its first line would be cut to exactly that one line every time.
+  let deadline: number | undefined;
 
   for await (const line of lines) {
     yield line;
 
-    if (!firstNonWhitespaceLineYielded && line.trim() !== "") {
-      firstNonWhitespaceLineYielded = true;
+    if (deadline === undefined) {
+      if (line.trim() !== "") {
+        deadline = Date.now() + ms;
+      }
+      continue;
     }
 
-    const isTakingTooLong = Date.now() - startTime > ms;
-    if (isTakingTooLong && firstNonWhitespaceLineYielded) {
+    if (Date.now() > deadline) {
       break;
     }
   }

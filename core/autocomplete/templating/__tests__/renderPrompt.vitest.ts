@@ -233,8 +233,11 @@ describe("renderPromptWithTokenLimit parity & pruning", () => {
   });
 
   it("prunes prefix/suffix to respect small context length", () => {
-    const longPrefix = "A".repeat(300);
+    const longPrefix = "A".repeat(3000);
 
+    // The reservation now comes from the template's completionOptions (falling
+    // back to the autocomplete default), not from the LLM's chat-sized one.
+    completionOptionsOverride = { maxTokens: 10 };
     const helper = makeHelper({ prunedPrefix: longPrefix });
 
     const llmStub = {
@@ -250,7 +253,26 @@ describe("renderPromptWithTokenLimit parity & pruning", () => {
       llm: llmStub,
     });
 
-    expect(compiledPrefix.length).toBeLessThan(120);
+    expect(compiledPrefix.length).toBeLessThan(longPrefix.length);
+  });
+
+  it("throws rather than pruning to an empty prompt when the budget is negative", () => {
+    completionOptionsOverride = undefined; // reservation falls back to the default
+    const helper = makeHelper({ prunedPrefix: "A".repeat(300) });
+    const llmStub = {
+      contextLength: 120,
+      completionOptions: {},
+      model: "test-model",
+    } as any;
+
+    expect(() =>
+      renderPromptWithTokenLimit({
+        snippetPayload: emptySnippetPayload,
+        workspaceDirs: ["file:///workspace"],
+        helper,
+        llm: llmStub,
+      }),
+    ).toThrow(/context budget is negative/);
   });
 });
 

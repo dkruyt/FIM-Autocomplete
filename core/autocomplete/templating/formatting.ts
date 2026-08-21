@@ -81,8 +81,22 @@ export const formatSnippets = (
             return formatClipboardSnippet(snippet, workspaceDirs);
           case AutocompleteSnippetType.Static:
             return formatStaticSnippet(snippet);
+          default:
+            // Not all snippets are built in core: `recentlyVisitedRanges` comes
+            // straight off the IDE boundary, so `type` is only as trustworthy
+            // as that caller. Dropping one malformed snippet costs a bit of
+            // context; falling through returned `undefined` and threw on
+            // `.content`, which aborted the whole completion and left the user
+            // with no ghost text at all.
+            console.warn(
+              `Dropping autocomplete snippet with unknown type: ${JSON.stringify(
+                (snippet as { type?: unknown })?.type,
+              )}`,
+            );
+            return undefined;
         }
       })
+      .flatMap((item) => (item === undefined ? [] : [item]))
       .map((item) => {
         return commentifySnippet(helper, item).content;
       })

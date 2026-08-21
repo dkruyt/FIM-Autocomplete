@@ -5,6 +5,7 @@ import { stopAtStartOf, stopAtStopTokens } from "./charStream";
 import {
   avoidEmptyComments,
   avoidPathLine,
+  fixCodeLlamaFirstLineIndentation,
   noDoubleNewLine,
   showWhateverWeHaveAtXMs,
   skipPrefixes,
@@ -46,6 +47,12 @@ export class StreamTransformPipeline {
 
     let lineGenerator = streamLines(charGenerator);
 
+    // CodeLlama reliably prefixes its first line with two spaces of phantom
+    // indentation. Model-specific, so don't apply it to anything else.
+    if (helper.modelName.toLowerCase().includes("codellama")) {
+      lineGenerator = fixCodeLlamaFirstLineIndentation(lineGenerator);
+    }
+
     lineGenerator = stopAtLines(lineGenerator, fullStop);
     const lineBelowCursor = this.getLineBelowCursor(helper);
     if (lineBelowCursor.trim() !== "") {
@@ -72,9 +79,13 @@ export class StreamTransformPipeline {
       fullStop,
     );
 
-    const timeoutValue = helper.options.modelTimeout;
-
-    lineGenerator = showWhateverWeHaveAtXMs(lineGenerator, timeoutValue!);
+    // Deliberately NOT `modelTimeout` -- that is the request budget. This is how
+    // long we let lines accumulate before showing what we already have, and it
+    // has its own option (whose default was previously ignored entirely).
+    lineGenerator = showWhateverWeHaveAtXMs(
+      lineGenerator,
+      helper.options.showWhateverWeHaveAtXMs,
+    );
 
     const finalGenerator = streamWithNewLines(lineGenerator);
     for await (const update of finalGenerator) {

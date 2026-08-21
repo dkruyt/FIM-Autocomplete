@@ -362,6 +362,16 @@ function pruneStringFromTop(
   if (tokens.length <= maxTokens) {
     return prompt;
   }
+  if (maxTokens <= 0) {
+    // `slice(length - maxTokens)` with a non-positive budget starts at or past
+    // the end and yields "", so the caller would post an empty prompt and get
+    // noise back with no indication why. There is no valid prompt at this
+    // budget; say so.
+    throw new Error(
+      `Cannot prune prompt to ${maxTokens} tokens: the context length is too ` +
+        `small for the tokens reserved for the response.`,
+    );
+  }
 
   return encoding.decode(tokens.slice(tokens.length - maxTokens));
 }

@@ -832,6 +832,8 @@ export interface ModelDescription {
 export interface TabAutocompleteOptions {
   disable: boolean;
   maxPromptTokens: number;
+  /** Output tokens reserved for the completion itself. */
+  maxCompletionTokens: number;
   debounceDelay: number;
   modelTimeout: number;
   maxSuffixPercentage: number;
@@ -847,7 +849,7 @@ export interface TabAutocompleteOptions {
   useRecentlyOpened: boolean;
   disableInFiles?: string[];
   useImports?: boolean;
-  showWhateverWeHaveAtXMs?: number;
+  showWhateverWeHaveAtXMs: number;
   // true = enabled, false = disabled, number = enabled with priority
   experimental_includeClipboard: boolean | number;
   experimental_includeRecentlyVisitedRanges: boolean | number;

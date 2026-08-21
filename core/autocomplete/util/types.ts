@@ -25,8 +25,30 @@ export interface AutocompleteInput {
   injectDetails?: string;
 }
 
+/**
+ * How many snippets each context source produced for one completion. Purely
+ * diagnostic -- it is what the transparency view reports, and the cheapest way
+ * to notice that a source has silently stopped contributing.
+ */
+export interface AutocompleteContextStats {
+  rootPath: number;
+  importDefinitions: number;
+  ideLsp: number;
+  recentlyEdited: number;
+  recentlyVisited: number;
+  recentlyOpened: number;
+  clipboard: number;
+  staticContext: number;
+}
+
 export interface AutocompleteOutcome extends TabAutocompleteOptions {
   accepted?: boolean;
+  /**
+   * The user took part of the suggestion (next word / next line) without
+   * accepting all of it. Directional usefulness -- counting these as
+   * rejections understates how often autocomplete helped.
+   */
+  partiallyAccepted?: boolean;
   time: number;
   prefix: string;
   suffix: string;
@@ -41,4 +63,5 @@ export interface AutocompleteOutcome extends TabAutocompleteOptions {
   completionId: string;
   timestamp: string;
   enabledStaticContextualization?: boolean;
+  contextStats?: AutocompleteContextStats;
 }

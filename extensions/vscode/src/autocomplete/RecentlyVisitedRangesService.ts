@@ -21,6 +21,8 @@ export class RecentlyVisitedRangesService {
   private maxSnippetsPerFile = 3;
   private isEnabled = true;
 
+  private disposables: vscode.Disposable[] = [];
+
   constructor(private readonly ide: IDE) {
     this.cache = new LRUCache<
       string,
@@ -28,6 +30,19 @@ export class RecentlyVisitedRangesService {
     >({
       max: this.maxRecentFiles,
     });
+
+    this.disposables.push(
+      vscode.window.onDidChangeTextEditorSelection(
+        this.cacheCurrentSelectionContext,
+      ),
+    );
+  }
+
+  public dispose() {
+    for (const d of this.disposables) {
+      d.dispose();
+    }
+    this.disposables = [];
   }
 
   private cacheCurrentSelectionContext = async (
