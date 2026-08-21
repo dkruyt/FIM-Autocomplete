@@ -254,6 +254,7 @@ export class CompletionProvider {
               suffix: helper.prunedSuffix,
               llm,
               confidenceThreshold: helper.options.confidenceThreshold,
+              singleLineComment: helper.lang.singleLineComment,
               // The snippet blob the model was actually shown, so identifiers
               // it picked up from cross-file context count as grounded.
               contextText: prompt,

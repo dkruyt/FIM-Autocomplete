@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   executeCommand: vi.fn(),
   existsSync: vi.fn(() => false),
   copyFileSync: vi.fn(),
+  readFileSync: vi.fn(() => Buffer.from("bundled tutorial")),
   getGlobalPath: vi.fn(() => "/global"),
 }));
 
@@ -29,17 +30,32 @@ vi.mock("vscode", () => ({
 vi.mock("fs", () => ({
   existsSync: mocks.existsSync,
   copyFileSync: mocks.copyFileSync,
-  default: { existsSync: mocks.existsSync, copyFileSync: mocks.copyFileSync },
+  readFileSync: mocks.readFileSync,
+  default: {
+    existsSync: mocks.existsSync,
+    copyFileSync: mocks.copyFileSync,
+    readFileSync: mocks.readFileSync,
+  },
 }));
 
 vi.mock("core/util/paths", () => ({ getGlobalPath: mocks.getGlobalPath }));
+
+import { createHash } from "crypto";
 
 import { openTutorial, showTutorialOnFirstInstall } from "./tutorial";
 
 const DESTINATION = "/global/tutorial.py";
 
-function fakeContext(shown = false) {
+/** sha256 of what the fs mock returns, i.e. an untouched copy. */
+const UNTOUCHED_HASH = createHash("sha256")
+  .update(Buffer.from("bundled tutorial"))
+  .digest("hex");
+
+function fakeContext(shown = false, copyHash?: string) {
   const state = new Map<string, unknown>([["fim.tutorialShown", shown]]);
+  if (copyHash) {
+    state.set("fim.tutorialCopyHash", copyHash);
+  }
   return {
     extensionUri: { fsPath: "/ext" },
     globalState: {
@@ -80,12 +96,39 @@ describe("openTutorial", () => {
     );
   });
 
-  it("keeps an existing copy, edits and all", async () => {
+  it("keeps a copy the user has edited", async () => {
+    mocks.existsSync.mockReturnValue(true);
+    // Recorded hash is of something else, so the file on disk has been changed.
+    const context = fakeContext(false, "a-hash-of-something-else");
+
+    await openTutorial(context);
+
+    expect(mocks.copyFileSync).not.toHaveBeenCalled();
+    expect(mocks.showTextDocument).toHaveBeenCalled();
+  });
+
+  it("keeps a copy predating the hash bookkeeping", async () => {
+    // No recorded hash means there is no way to know whether it was edited, and
+    // destroying someone's notes is worse than showing them a stale tutorial.
     mocks.existsSync.mockReturnValue(true);
 
     await openTutorial(fakeContext());
 
     expect(mocks.copyFileSync).not.toHaveBeenCalled();
+  });
+
+  it("refreshes a copy that is still exactly what we wrote", async () => {
+    // Otherwise a tutorial rewritten for new features never reaches the people
+    // who opened the old one.
+    mocks.existsSync.mockReturnValue(true);
+    const context = fakeContext(false, UNTOUCHED_HASH);
+
+    await openTutorial(context);
+
+    expect(mocks.copyFileSync).toHaveBeenCalledWith(
+      "/ext/tutorial/tutorial.py",
+      DESTINATION,
+    );
     expect(mocks.showTextDocument).toHaveBeenCalled();
   });
 

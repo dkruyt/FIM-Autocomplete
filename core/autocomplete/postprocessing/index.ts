@@ -155,6 +155,30 @@ function echoesPrefix(completion: string, prefix: string): boolean {
   return false;
 }
 
+/**
+ * True when the completion is more of the comment the cursor sits in, rather
+ * than code answering it.
+ *
+ * Allowing multiline at the end of a comment is what makes "describe it, get
+ * the implementation" work, but it cannot tell a finished instruction from a
+ * sentence the user is still typing. The model's own output settles it: code
+ * answering a comment starts on a new line, while prose continuing the comment
+ * carries on along the same one. So `# read the file at path` is answered with
+ * a newline and an indented block, and `# This function ` is answered with
+ * "is not in the file, but ..." -- and only the second should be cut back.
+ */
+function continuesComment(
+  completion: string,
+  prefix: string,
+  singleLineComment: string | undefined,
+): boolean {
+  if (!singleLineComment || completion.startsWith("\n")) {
+    return false;
+  }
+  const lineAtCursor = prefix.split("\n").at(-1) ?? "";
+  return lineAtCursor.trimStart().startsWith(singleLineComment);
+}
+
 export function postprocessCompletion({
   completion,
   llm,
@@ -162,6 +186,7 @@ export function postprocessCompletion({
   suffix,
   confidenceThreshold = 0,
   contextText = "",
+  singleLineComment,
   onScored,
 }: {
   completion: string;
@@ -170,6 +195,7 @@ export function postprocessCompletion({
   suffix: string;
   confidenceThreshold?: number;
   contextText?: string;
+  singleLineComment?: string;
   onScored?: (signals: ReturnType<typeof scoreCompletion>) => void;
 }): string | undefined {
   // Don't return empty
@@ -190,6 +216,11 @@ export function postprocessCompletion({
   // ...or of a run of lines above
   if (echoesPrefix(completion, prefix)) {
     return undefined;
+  }
+
+  // Finishing the user's sentence is fine; writing three more of them is not.
+  if (continuesComment(completion, prefix, singleLineComment)) {
+    completion = completion.split("\n")[0];
   }
 
   // Scored even when gating is off, so the debug channel can report it and the
