@@ -102,13 +102,20 @@ function getSnippetsFromRecentlyEditedRanges(
     return [];
   }
 
-  return helper.input.recentlyEditedRanges.map((range) => {
-    return {
-      filepath: range.filepath,
-      content: range.lines.join("\n"),
-      type: AutocompleteSnippetType.Code,
-    };
-  });
+  return (
+    helper.input.recentlyEditedRanges
+      // Ranges in the file being edited are already in the caret window, only
+      // staler. Sending them back duplicates the prompt's own subject and, worse,
+      // shows the model an out-of-date copy of code it can already see.
+      .filter((range) => range.filepath !== helper.filepath)
+      .map((range) => {
+        return {
+          filepath: range.filepath,
+          content: range.lines.join("\n"),
+          type: AutocompleteSnippetType.Code,
+        };
+      })
+  );
 }
 
 const getClipboardSnippets = async (

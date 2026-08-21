@@ -83,12 +83,27 @@ export const getSnippets = (
   helper: HelperVars,
   payload: SnippetPayload,
 ): AutocompleteSnippet[] => {
+  // Every code bucket is stripped of anything already visible around the
+  // cursor. Restricting this to `base` meant a range the user had just edited
+  // in this file was sent as a snippet *and* sat a few lines later in the
+  // prefix, paying twice for one piece of code -- and the copy in the snippet
+  // is the older of the two.
+  const withoutDuplicates = (snippets: AutocompleteCodeSnippet[]) =>
+    filterSnippetsAlreadyInCaretWindow(
+      snippets,
+      helper.prunedCaretWindow,
+    ) as AutocompleteCodeSnippet[];
+
   const snippets = {
     diagnostics: payload.diagnosticsSnippets,
     clipboard: payload.clipboardSnippets,
-    recentlyVisitedRanges: payload.recentlyVisitedRangesSnippets,
-    recentlyEditedRanges: payload.recentlyEditedRangeSnippets,
-    recentlyOpenedFiles: payload.recentlyOpenedFileSnippets,
+    recentlyVisitedRanges: withoutDuplicates(
+      payload.recentlyVisitedRangesSnippets,
+    ),
+    recentlyEditedRanges: withoutDuplicates(
+      payload.recentlyEditedRangeSnippets,
+    ),
+    recentlyOpenedFiles: withoutDuplicates(payload.recentlyOpenedFileSnippets),
     base: rankSnippetsByRelevance(
       filterSnippetsAlreadyInCaretWindow(
         [
@@ -177,7 +192,9 @@ export const getSnippets = (
     if (key === "recentlyOpenedFiles" && helper.options.useRecentlyOpened) {
       // Custom trimming
       const processedSnippets = formatOpenedFilesContext(
-        payload.recentlyOpenedFileSnippets,
+        // The deduplicated bucket, not the raw payload -- this branch used to
+        // reach past the filtering above.
+        snippets.recentlyOpenedFiles,
         remainingTokenCount,
         helper,
         finalSnippets,

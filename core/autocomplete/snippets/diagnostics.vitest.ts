@@ -148,3 +148,50 @@ describe("a failing context source does not sink the completion", () => {
     expect(payload.diagnosticsSnippets).toEqual([]);
   });
 });
+
+describe("the file being edited is not fed back as context", () => {
+  it("drops recently-edited ranges from the current file", async () => {
+    const helper: any = {
+      filepath: "file:///config.py",
+      pos: { line: 0, character: 0 },
+      fullPrefix: "",
+      fullSuffix: "",
+      lang: { name: "Python" },
+      options: {
+        useDiagnostics: false,
+        useRecentlyEdited: true,
+        useRecentlyOpened: false,
+        experimental_includeClipboard: false,
+        experimental_enableStaticContextualization: false,
+      },
+      input: {
+        filepath: "file:///config.py",
+        recentlyVisitedRanges: [],
+        recentlyEditedRanges: [
+          // Same file as the cursor: already in the caret window, only staler.
+          { filepath: "file:///config.py", lines: ["ROWS = 6"] },
+          { filepath: "file:///other.py", lines: ["def helper(): pass"] },
+        ],
+      },
+    };
+    const payload = await getAllSnippets({
+      helper,
+      ide: {
+        getProblems: async () => [],
+        getClipboardContent: async () => ({ text: "", copiedAt: "" }),
+        readFile: async () => "",
+        getWorkspaceDirs: async () => [],
+      } as any,
+      getDefinitionsFromLsp: async () => [],
+      contextRetrievalService: {
+        getRootPathSnippets: async () => [],
+        getSnippetsFromImportDefinitions: async () => [],
+        getStaticContextSnippets: async () => [],
+      } as any,
+    });
+    expect(payload.recentlyEditedRangeSnippets).toHaveLength(1);
+    expect(payload.recentlyEditedRangeSnippets[0].filepath).toBe(
+      "file:///other.py",
+    );
+  });
+});
