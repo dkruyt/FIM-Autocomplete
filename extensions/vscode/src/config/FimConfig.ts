@@ -128,6 +128,7 @@ export class FimConfig implements FimConfigProvider {
       onlyMyCode: c.get<boolean>("onlyMyCode"),
       useRecentlyEdited: c.get<boolean>("useRecentlyEdited"),
       useRecentlyOpened: c.get<boolean>("useRecentlyOpened"),
+      useDiagnostics: c.get<boolean>("useDiagnostics"),
       useImports: c.get<boolean>("useImports"),
       disableInFiles: c.get<string[]>("disableInFiles"),
       transform: c.get<boolean>("transform"),

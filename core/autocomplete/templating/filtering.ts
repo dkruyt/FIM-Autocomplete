@@ -84,6 +84,7 @@ export const getSnippets = (
   payload: SnippetPayload,
 ): AutocompleteSnippet[] => {
   const snippets = {
+    diagnostics: payload.diagnosticsSnippets,
     clipboard: payload.clipboardSnippets,
     recentlyVisitedRanges: payload.recentlyVisitedRangesSnippets,
     recentlyEditedRanges: payload.recentlyEditedRangeSnippets,
@@ -112,6 +113,13 @@ export const getSnippets = (
     enabledOrPriority: boolean | number;
     defaultPriority: number;
   }[] = [
+    {
+      // An error beside the cursor is the most specific statement available
+      // about what the user is trying to do, and it is a handful of tokens.
+      key: "diagnostics",
+      enabledOrPriority: helper.options.useDiagnostics,
+      defaultPriority: 0,
+    },
     {
       key: "clipboard",
       enabledOrPriority: helper.options.experimental_includeClipboard,

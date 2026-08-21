@@ -40,6 +40,7 @@ export interface AutocompleteContextStats {
   recentlyOpened: number;
   clipboard: number;
   staticContext: number;
+  diagnostics: number;
 }
 
 export interface AutocompleteOutcome extends TabAutocompleteOptions {

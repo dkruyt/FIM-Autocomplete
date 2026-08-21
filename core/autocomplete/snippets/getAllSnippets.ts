@@ -7,6 +7,7 @@ import { openedFilesLruCache } from "../util/openedFilesLruCache";
 
 import {
   AutocompleteClipboardSnippet,
+  AutocompleteDiagnosticsSnippet,
   AutocompleteCodeSnippet,
   AutocompleteSnippetType,
   AutocompleteStaticSnippet,
@@ -26,6 +27,7 @@ export interface SnippetPayload {
   clipboardSnippets: AutocompleteClipboardSnippet[];
   recentlyOpenedFileSnippets: AutocompleteCodeSnippet[];
   staticSnippet: AutocompleteStaticSnippet[];
+  diagnosticsSnippets: AutocompleteDiagnosticsSnippet[];
 }
 
 /** Budget for a single context source before we give up and complete without it. */
@@ -53,7 +55,16 @@ function racePromise<T>(
     setTimeout(() => resolve([]), timeout);
   });
 
-  return Promise.race([promise, timeoutPromise]);
+  // Context is best-effort by definition -- these sources already give up on a
+  // timeout. A source that throws instead must degrade the same way: without
+  // this, one failure rejects the Promise.all below and the user gets no
+  // completion at all rather than one with less context.
+  const settled = promise.catch((e) => {
+    console.error("Autocomplete context source failed:", e);
+    return [] as T[];
+  });
+
+  return Promise.race([settled, timeoutPromise]);
 }
 
 // Some IDEs might have special ways of finding snippets (e.g. JetBrains and VS Code have different "LSP-equivalent" systems,
@@ -177,6 +188,65 @@ const getSnippetsFromRecentlyOpenedFiles = async (
   }
 };
 
+/** How far either side of the cursor a diagnostic has to be to be worth mentioning. */
+const DIAGNOSTICS_LINE_RADIUS = 15;
+/** More than a handful is noise, and crowds out actual code. */
+const MAX_DIAGNOSTICS = 5;
+
+/**
+ * Compiler and linter errors around the cursor.
+ *
+ * A model that can see "Cannot find name 'formatCurrency'" writes the import,
+ * and one that can see a type error tends to stop repeating it. Errors far from
+ * the cursor are unrelated to what is being typed, so only a window either side
+ * counts.
+ */
+const getDiagnosticsSnippets = async (
+  helper: HelperVars,
+  ide: IDE,
+): Promise<AutocompleteDiagnosticsSnippet[]> => {
+  if (!helper.options.useDiagnostics) {
+    return [];
+  }
+
+  const problems = await ide.getProblems(helper.filepath);
+  if (problems.length === 0) {
+    return [];
+  }
+
+  const caretLine = helper.pos.line;
+  const nearby = problems
+    .filter(
+      (p) =>
+        Math.abs(p.range.start.line - caretLine) <= DIAGNOSTICS_LINE_RADIUS,
+    )
+    .sort(
+      (a, b) =>
+        Math.abs(a.range.start.line - caretLine) -
+        Math.abs(b.range.start.line - caretLine),
+    )
+    .slice(0, MAX_DIAGNOSTICS);
+
+  if (nearby.length === 0) {
+    return [];
+  }
+
+  // 1-based lines, to match what the editor shows the user.
+  const content = nearby
+    .map(
+      (p) =>
+        `Line ${p.range.start.line + 1}: ${p.message.split("\n")[0].trim()}`,
+    )
+    .join("\n");
+
+  return [
+    {
+      type: AutocompleteSnippetType.Diagnostics,
+      content: `Problems in this file:\n${content}`,
+    },
+  ];
+};
+
 export const getAllSnippets = async ({
   helper,
   ide,
@@ -198,6 +268,7 @@ export const getAllSnippets = async ({
     clipboardSnippets,
     recentlyOpenedFileSnippets,
     staticSnippet,
+    diagnosticsSnippets,
   ] = await Promise.all([
     racePromise(contextRetrievalService.getRootPathSnippets(helper)),
     racePromise(
@@ -214,6 +285,7 @@ export const getAllSnippets = async ({
           STATIC_CONTEXT_TIMEOUT_MS,
         )
       : [],
+    racePromise(getDiagnosticsSnippets(helper, ide)),
   ]);
 
   return {
@@ -225,5 +297,6 @@ export const getAllSnippets = async ({
     recentlyVisitedRangesSnippets: helper.input.recentlyVisitedRanges,
     recentlyOpenedFileSnippets,
     staticSnippet,
+    diagnosticsSnippets,
   };
 };

@@ -59,6 +59,11 @@ const SOURCES: Array<{
     label: "static contextualization",
     enabled: (o) => !!o.experimental_enableStaticContextualization,
   },
+  {
+    key: "diagnostics",
+    label: "nearby diagnostics",
+    enabled: (o) => o.useDiagnostics !== false,
+  },
 ];
 
 /**

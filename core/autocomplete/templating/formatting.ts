@@ -81,6 +81,8 @@ export const formatSnippets = (
             return formatClipboardSnippet(snippet, workspaceDirs);
           case AutocompleteSnippetType.Static:
             return formatStaticSnippet(snippet);
+          case AutocompleteSnippetType.Diagnostics:
+            return snippet;
           default:
             // Not all snippets are built in core: `recentlyVisitedRanges` comes
             // straight off the IDE boundary, so `type` is only as trustworthy

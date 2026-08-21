@@ -849,6 +849,8 @@ export interface TabAutocompleteOptions {
   onlyMyCode: boolean;
   useRecentlyEdited: boolean;
   useRecentlyOpened: boolean;
+  /** Include nearby compiler/linter errors in the prompt. */
+  useDiagnostics: boolean;
   disableInFiles?: string[];
   useImports?: boolean;
   showWhateverWeHaveAtXMs: number;

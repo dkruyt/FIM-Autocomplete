@@ -289,6 +289,7 @@ export class CompletionProvider {
           recentlyOpened: snippetPayload.recentlyOpenedFileSnippets.length,
           clipboard: snippetPayload.clipboardSnippets.length,
           staticContext: snippetPayload.staticSnippet.length,
+          diagnostics: snippetPayload.diagnosticsSnippets.length,
         },
         confidence: confidenceSignals,
       };

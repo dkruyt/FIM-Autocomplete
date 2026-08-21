@@ -295,6 +295,11 @@
           "default": true,
           "description": "Include recently opened files as context."
         },
+        "fim.useDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Include compiler and linter errors near the cursor in the prompt, so the model can see what is currently broken. Costs a few tokens and usually pays for itself on missing imports."
+        },
         "fim.useImports": {
           "type": "boolean",
           "default": true,
