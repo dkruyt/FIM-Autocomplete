@@ -19,6 +19,7 @@ import {
 import { AutocompleteDebouncer } from "./util/AutocompleteDebouncer.js";
 import { AutocompleteLoggingService } from "./util/AutocompleteLoggingService.js";
 import AutocompleteLruCache from "./util/AutocompleteLruCache.js";
+import { resolveContextBudget } from "./util/contextBudget.js";
 import { HelperVars } from "./util/HelperVars.js";
 import { AutocompleteInput, AutocompleteOutcome } from "./util/types.js";
 
@@ -186,7 +187,7 @@ export class CompletionProvider {
 
       const helper = await HelperVars.create(
         input,
-        options,
+        resolveContextBudget(options, llm),
         llm.model,
         this.ide,
       );

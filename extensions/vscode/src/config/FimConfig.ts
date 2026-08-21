@@ -114,6 +114,9 @@ export class FimConfig implements FimConfigProvider {
     const overrides: Partial<TabAutocompleteOptions> = {
       disable: c.get<boolean>("enabled") === false,
       maxPromptTokens: c.get<number>("maxPromptTokens"),
+      prefixPercentage: c.get<number>("prefixPercentage"),
+      maxSuffixPercentage: c.get<number>("maxSuffixPercentage"),
+      maxCompletionTokens: c.get<number>("maxCompletionTokens"),
       debounceDelay: c.get<number>("debounceDelay"),
       modelTimeout: c.get<number>("modelTimeout"),
       showWhateverWeHaveAtXMs: c.get<number>("showWhateverWeHaveAtXMs"),

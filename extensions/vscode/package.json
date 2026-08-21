@@ -235,8 +235,28 @@
         },
         "fim.maxPromptTokens": {
           "type": "number",
-          "default": 1024,
-          "description": "Token budget for the prompt (prefix + suffix + snippets)."
+          "default": 2048,
+          "markdownDescription": "Token budget for the whole prompt: the code around the cursor plus any context snippets. Automatically reduced when the model's context length cannot hold this much. Larger budgets give the model more to work with but cost latency."
+        },
+        "fim.prefixPercentage": {
+          "type": "number",
+          "default": 0.3,
+          "minimum": 0.05,
+          "maximum": 0.95,
+          "markdownDescription": "Share of `#fim.maxPromptTokens#` spent on the code *before* the cursor. The rest is available for the code after it and for context snippets."
+        },
+        "fim.maxSuffixPercentage": {
+          "type": "number",
+          "default": 0.2,
+          "minimum": 0.05,
+          "maximum": 0.95,
+          "markdownDescription": "Ceiling on the share of `#fim.maxPromptTokens#` spent on the code *after* the cursor. Raise it when working in large files where the code below the cursor matters."
+        },
+        "fim.maxCompletionTokens": {
+          "type": "number",
+          "default": 512,
+          "minimum": 32,
+          "markdownDescription": "Output tokens reserved for the completion itself. Ghost text needs far less than a chat reply; the reservation comes out of the space available for the prompt."
         },
         "fim.multilineCompletions": {
           "type": "string",
