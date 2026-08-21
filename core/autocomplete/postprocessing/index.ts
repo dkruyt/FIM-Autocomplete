@@ -156,27 +156,59 @@ function echoesPrefix(completion: string, prefix: string): boolean {
 }
 
 /**
- * True when the completion is more of the comment the cursor sits in, rather
- * than code answering it.
+ * When the cursor sits on a comment and the model answers with nothing but more
+ * comment, cut it back to a single line.
  *
  * Allowing multiline at the end of a comment is what makes "describe it, get
- * the implementation" work, but it cannot tell a finished instruction from a
- * sentence the user is still typing. The model's own output settles it: code
- * answering a comment starts on a new line, while prose continuing the comment
- * carries on along the same one. So `# read the file at path` is answered with
- * a newline and an indented block, and `# This function ` is answered with
- * "is not in the file, but ..." -- and only the second should be cut back.
+ * the implementation" work, but nothing tells a finished instruction from a
+ * sentence the user is halfway through. Two shapes of this showed up in real
+ * use, and they look different on the wire:
+ *
+ *   "# This function "        -> "is not in the file, but it is used ...\n# It
+ *                                is not a part of the extension ..."
+ *   "# - Training loop logic" -> "\n# - Model saving\n# - Model loading\n..."
+ *
+ * The first continues the cursor's own line; the second starts a new one. What
+ * they share is that no line of either is code, which is the thing worth
+ * testing. Code answering a comment always contains at least one non-comment
+ * line, so "# read the file at path" answered with an indented `with` block is
+ * left alone.
+ *
+ * One more line of comment is a reasonable suggestion -- finishing a bullet, or
+ * a sentence. Six invented ones are not, so the rest is dropped rather than the
+ * whole thing: a wrong suggestion the user can see and reject beats no
+ * suggestion.
  */
-function continuesComment(
+function trimCommentOnlyCompletion(
   completion: string,
   prefix: string,
   singleLineComment: string | undefined,
-): boolean {
-  if (!singleLineComment || completion.startsWith("\n")) {
-    return false;
+): string {
+  if (!singleLineComment) {
+    return completion;
   }
   const lineAtCursor = prefix.split("\n").at(-1) ?? "";
-  return lineAtCursor.trimStart().startsWith(singleLineComment);
+  if (!lineAtCursor.trimStart().startsWith(singleLineComment)) {
+    return completion;
+  }
+
+  const lines = completion.split("\n");
+  const isComment = (line: string, index: number) =>
+    line.trim() === "" ||
+    line.trimStart().startsWith(singleLineComment) ||
+    // The first line has no marker of its own when it continues the comment the
+    // cursor is already inside.
+    (index === 0 && !completion.startsWith("\n"));
+
+  if (!lines.every(isComment)) {
+    return completion;
+  }
+
+  const firstContentful = lines.findIndex((line) => line.trim() !== "");
+  if (firstContentful === -1) {
+    return completion;
+  }
+  return lines.slice(0, firstContentful + 1).join("\n");
 }
 
 export function postprocessCompletion({
@@ -218,10 +250,8 @@ export function postprocessCompletion({
     return undefined;
   }
 
-  // Finishing the user's sentence is fine; writing three more of them is not.
-  if (continuesComment(completion, prefix, singleLineComment)) {
-    completion = completion.split("\n")[0];
-  }
+  // Finishing the user's sentence is fine; writing five more of them is not.
+  completion = trimCommentOnlyCompletion(completion, prefix, singleLineComment);
 
   // Scored even when gating is off, so the debug channel can report it and the
   // threshold can be chosen from real numbers rather than guessed.
