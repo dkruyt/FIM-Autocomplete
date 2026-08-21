@@ -1,5 +1,4 @@
 import { getUriFileExtension } from "../../util/uri";
-import { BracketMatchingService } from "../filtering/BracketMatchingService";
 import {
   CharacterFilter,
   LineFilter,
@@ -37,6 +36,14 @@ export interface AutocompleteLanguageInfo {
    * Function that allows cusotmization of whether to use a multi-line completion on a per-language and completion basis
    */
   useMultiline?: (args: { prefix: string; suffix: string }) => boolean;
+  /**
+   * Opt out of bracket matching, which is applied to every other language.
+   *
+   * Only for languages where an unmatched closing bracket is ordinary text --
+   * prose and indentation-based markup. In a code language, a completion that
+   * closes a bracket it never opened is always wrong.
+   */
+  skipBracketMatching?: boolean;
 }
 
 // TypeScript
@@ -282,6 +289,7 @@ export const Lua = {
 
 // YAML
 export const YAML: AutocompleteLanguageInfo = {
+  skipBracketMatching: true,
   name: "YAML",
   topLevelKeywords: [],
   singleLineComment: "#",
@@ -327,21 +335,31 @@ export const Json: AutocompleteLanguageInfo = {
   topLevelKeywords: [],
   singleLineComment: "//",
   endOfLine: [",", "}", "]"],
-  charFilters: [
-    function matchBrackets({ chars, prefix, suffix, filepath, multiline }) {
-      const bracketMatchingService = new BracketMatchingService();
-      return bracketMatchingService.stopOnUnmatchedClosingBracket(
-        chars,
-        prefix,
-        suffix,
-        filepath,
-        multiline,
-      );
-    },
+};
+
+export const SQL: AutocompleteLanguageInfo = {
+  name: "SQL",
+  // A .sql file previously fell through to the TypeScript config, which is
+  // where its comment marker and end-of-line came from.
+  topLevelKeywords: [
+    "SELECT",
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "CREATE",
+    "ALTER",
+    "DROP",
+    "WITH",
   ],
+  singleLineComment: "--",
+  endOfLine: [";"],
+  // Scripts are routinely edited as fragments -- a half-written query with an
+  // unclosed paren is a normal intermediate state, not an error to truncate at.
+  skipBracketMatching: true,
 };
 
 export const Markdown: AutocompleteLanguageInfo = {
+  skipBracketMatching: true,
   name: "Markdown",
   topLevelKeywords: [],
   singleLineComment: "",
@@ -407,6 +425,7 @@ export const LANGUAGES: { [extension: string]: AutocompleteLanguageInfo } = {
   yaml: YAML,
   yml: YAML,
   md: Markdown,
+  sql: SQL,
   lua: Lua,
   luau: Lua,
 };

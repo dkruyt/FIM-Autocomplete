@@ -6,7 +6,6 @@ import { shouldCompleteMultiline } from "./classification/shouldCompleteMultilin
 import { ContextRetrievalService } from "./context/ContextRetrievalService.js";
 
 import { isSecurityConcern } from "../indexing/ignore.js";
-import { BracketMatchingService } from "./filtering/BracketMatchingService.js";
 import { CompletionStreamer } from "./generation/CompletionStreamer.js";
 import { postprocessCompletion } from "./postprocessing/index.js";
 import { shouldPrefilter } from "./prefiltering/index.js";
@@ -36,7 +35,6 @@ const ERRORS_TO_IGNORE = [
 export class CompletionProvider {
   private autocompleteCache?: AutocompleteLruCache;
   public errorsShown: Set<string> = new Set();
-  private bracketMatchingService = new BracketMatchingService();
   private debouncer = new AutocompleteDebouncer();
   private completionStreamer: CompletionStreamer;
   private loggingService = new AutocompleteLoggingService();
@@ -120,14 +118,7 @@ export class CompletionProvider {
   }
 
   public accept(completionId: string) {
-    const outcome = this.loggingService.accept(completionId);
-    if (!outcome) {
-      return;
-    }
-    this.bracketMatchingService.handleAcceptedCompletion(
-      outcome.completion,
-      outcome.filepath,
-    );
+    this.loggingService.accept(completionId);
   }
 
   public partialAccept(completionId: string) {

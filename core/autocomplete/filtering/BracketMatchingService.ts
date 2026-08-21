@@ -9,50 +9,50 @@ export const BRACKETS_REVERSE: { [key: string]: string } = {
   "]": "[",
 };
 /**
- * We follow the policy of only completing bracket pairs that we started
- * But sometimes we started the pair in a previous autocomplete suggestion
+ * Brackets left open by `text`, outermost first.
+ *
+ * A closing bracket that matches nothing is ignored rather than treated as an
+ * error: source mid-edit is routinely unbalanced, and the point here is only to
+ * know what the completion is allowed to close.
  */
-export class BracketMatchingService {
-  private openingBracketsFromLastCompletion: string[] = [];
-  private lastCompletionFile: string | undefined = undefined;
-
-  handleAcceptedCompletion(completion: string, filepath: string) {
-    this.openingBracketsFromLastCompletion = [];
-    const stack: string[] = [];
-
-    for (let i = 0; i < completion.length; i++) {
-      const char = completion[i];
-      if (Object.keys(BRACKETS).includes(char)) {
-        // It's an opening bracket
-        stack.push(char);
-      } else if (Object.values(BRACKETS).includes(char)) {
-        // It's a closing bracket
-        if (stack.length === 0 || BRACKETS[stack.pop()!] !== char) {
-          break;
-        }
+export function unmatchedOpeningBrackets(text: string): string[] {
+  const stack: string[] = [];
+  for (const char of text) {
+    if (BRACKETS[char]) {
+      stack.push(char);
+    } else if (BRACKETS_REVERSE[char]) {
+      if (stack.length > 0 && BRACKETS[stack[stack.length - 1]] === char) {
+        stack.pop();
       }
     }
-
-    // Any remaining opening brackets in the stack are uncompleted
-    this.openingBracketsFromLastCompletion = stack;
-    this.lastCompletionFile = filepath;
   }
+  return stack;
+}
 
+/**
+ * Stops a completion at a closing bracket that closes nothing.
+ *
+ * "Nothing" means neither the completion itself nor the code before the cursor:
+ * finishing a block the prefix opened is the single most common multi-line
+ * completion there is, so the prefix's open brackets seed the stack.
+ *
+ * This used to seed only from the previously accepted completion, which was a
+ * strictly weaker version of the same idea -- an accepted completion becomes
+ * part of the prefix, so scanning the prefix subsumes it -- and it was wired to
+ * JSON alone. Reading the prefix instead makes it correct for real code, which
+ * is what allows it to be applied to every bracket language.
+ */
+export class BracketMatchingService {
   async *stopOnUnmatchedClosingBracket(
     stream: AsyncGenerator<string>,
     prefix: string,
     suffix: string,
-    filepath: string,
     multiline: boolean, // Whether this is a multiline completion or not
   ): AsyncGenerator<string> {
     let stack: string[] = [];
     if (multiline) {
-      // Add opening brackets from the previous response
-      if (this.lastCompletionFile === filepath) {
-        stack = [...this.openingBracketsFromLastCompletion];
-      } else {
-        this.lastCompletionFile = undefined;
-      }
+      // Whatever the code above the cursor left open, the completion may close.
+      stack = unmatchedOpeningBrackets(prefix);
     } else {
       // If single line completion, then allow completing bracket pairs that are
       // started on the current line but not finished on the current line

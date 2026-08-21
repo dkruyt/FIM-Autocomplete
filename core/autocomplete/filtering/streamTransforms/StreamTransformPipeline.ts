@@ -1,5 +1,6 @@
 import { streamLines } from "../../../diff/util";
 import { HelperVars } from "../../util/HelperVars";
+import { BracketMatchingService } from "../BracketMatchingService";
 
 import { stopAtStartOf, stopAtStopTokens } from "./charStream";
 import {
@@ -19,6 +20,8 @@ import {
 const STOP_AT_PATTERNS = ["diff --git"];
 
 export class StreamTransformPipeline {
+  private readonly bracketMatchingService = new BracketMatchingService();
+
   async *transform(
     generator: AsyncGenerator<string>,
     prefix: string,
@@ -35,6 +38,18 @@ export class StreamTransformPipeline {
       ...STOP_AT_PATTERNS,
     ]);
     charGenerator = stopAtStartOf(charGenerator, suffix);
+    // A completion that closes a bracket it never opened is wrong in any code
+    // language, so this applies everywhere except the languages that opt out.
+    // It used to be attached to JSON alone, via a per-language charFilter.
+    if (!helper.lang.skipBracketMatching) {
+      charGenerator = this.bracketMatchingService.stopOnUnmatchedClosingBracket(
+        charGenerator,
+        prefix,
+        suffix,
+        multiline,
+      );
+    }
+
     for (const charFilter of helper.lang.charFilters ?? []) {
       charGenerator = charFilter({
         chars: charGenerator,
