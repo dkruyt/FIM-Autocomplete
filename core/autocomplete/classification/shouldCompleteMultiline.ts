@@ -33,9 +33,18 @@ export function shouldCompleteMultiline(helper: HelperVars) {
   //   return false;
   // }
 
-  // Don't complete multi-line for single-line comments
+  // Writing *inside* a comment is prose, and a multi-line suggestion there
+  // tends to ramble, so stay on one line.
+  //
+  // But sitting at the *end* of a finished comment is the opposite situation:
+  // "// parse the config file" followed by a cursor is a description of code
+  // the user wants written, and capping it at one line throws away the most
+  // valuable completion the plugin can offer. The whole rule used to apply to
+  // both, which meant the comment-then-implementation flow never worked unless
+  // you pressed Enter first.
   if (
     helper.lang.singleLineComment &&
+    isMidlineCompletion(helper.fullPrefix, helper.fullSuffix) &&
     helper.fullPrefix
       .split("\n")
       .slice(-1)[0]

@@ -164,6 +164,18 @@ describe.skipIf(!LIVE)("live FIM endpoint", () => {
     }
   }, 120_000);
 
+  it("writes an implementation from a comment (M9)", async () => {
+    // Cursor sits at the end of a finished comment. This used to be forced to
+    // a single line, which made the comment-then-implementation flow useless.
+    const outcome = await run(
+      "comment-driven",
+      "live_comment.py",
+      `import json\n\n\ndef load_config(path):\n    # read the file at path and parse it as JSON${CURSOR}\n`,
+    );
+    expect(outcome?.completion?.length).toBeGreaterThan(0);
+    console.log(`M9  multiline=${(outcome?.numLines ?? 0) > 1}`);
+  }, 60_000);
+
   it("picks up recently-edited / visited / opened context", async () => {
     // These three sources are supplied by the IDE layer; populate them the way
     // the VS Code trackers now do, to prove the payload reaches the prompt.
