@@ -1,6 +1,7 @@
 import { RangeInFileWithContents } from "core";
 import { getSymbolsForSnippet } from "core/autocomplete/context/ranking";
 import { RecentlyEditedRange } from "core/autocomplete/util/types";
+import { isSecurityConcern } from "core/indexing/ignore";
 import * as vscode from "vscode";
 
 import { VsCodeIdeUtils } from "../util/ideUtils";
@@ -23,25 +24,60 @@ export class RecentlyEditedTracker {
   private recentlyEditedDocuments: VsCodeRecentlyEditedDocument[] = [];
   private static maxRecentlyEditedDocuments = 10;
 
+  private disposables: vscode.Disposable[] = [];
+
+  /**
+   * `insertRange` reads and rewrites `recentlyEditedRanges`, so concurrent calls
+   * would interleave and lose entries. A single edit can carry many content
+   * changes, so serialize them all onto one tail promise.
+   */
+  private queue: Promise<void> = Promise.resolve();
+
   constructor(private ideUtils: VsCodeIdeUtils) {
-    // TODO merge this and re-enable https://github.com/continuedev/continue/pull/8364
-    // vscode.workspace.onDidChangeTextDocument((event) => {
-    //   event.contentChanges.forEach((change) => {
-    //     const editedRange = {
-    //       uri: event.document.uri,
-    //       range: new vscode.Range(
-    //         new vscode.Position(change.range.start.line, 0),
-    //         new vscode.Position(change.range.end.line + 1, 0),
-    //       ),
-    //       timestamp: Date.now(),
-    //     };
-    //     this.insertRange(editedRange);
-    //   });
-    //   this.insertDocument(event.document.uri);
-    // });
-    // setInterval(() => {
-    //   this.removeOldEntries();
-    // }, 1000 * 15);
+    this.disposables.push(
+      vscode.workspace.onDidChangeTextDocument((event) => {
+        if (event.document.uri.scheme !== "file") {
+          return;
+        }
+        // Edited content is fed straight into the completion prompt, so apply
+        // the same exclusion the other context sources use.
+        if (isSecurityConcern(event.document.uri.fsPath)) {
+          return;
+        }
+        if (event.contentChanges.length === 0) {
+          return;
+        }
+
+        for (const change of event.contentChanges) {
+          const editedRange = {
+            uri: event.document.uri,
+            range: new vscode.Range(
+              new vscode.Position(change.range.start.line, 0),
+              new vscode.Position(change.range.end.line + 1, 0),
+            ),
+            timestamp: Date.now(),
+          };
+          this.queue = this.queue.then(() =>
+            this.insertRange(editedRange).catch((e) =>
+              console.error("Failed to track recently edited range:", e),
+            ),
+          );
+        }
+        this.insertDocument(event.document.uri);
+      }),
+    );
+
+    const interval = setInterval(() => {
+      this.removeOldEntries();
+    }, 1000 * 15);
+    this.disposables.push(new vscode.Disposable(() => clearInterval(interval)));
+  }
+
+  public dispose() {
+    for (const d of this.disposables) {
+      d.dispose();
+    }
+    this.disposables = [];
   }
 
   private async insertRange(
@@ -87,8 +123,12 @@ export class RecentlyEditedTracker {
   }
 
   private insertDocument(uri: vscode.Uri): void {
-    // Don't add a duplicate
-    if (this.recentlyEditedDocuments.some((doc) => doc.uri === uri)) {
+    // Don't add a duplicate. Compare by string -- vscode.Uri instances are
+    // recreated per event, so reference equality never holds here.
+    const key = uri.toString();
+    if (
+      this.recentlyEditedDocuments.some((doc) => doc.uri.toString() === key)
+    ) {
       return;
     }
 

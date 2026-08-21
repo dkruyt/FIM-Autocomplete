@@ -116,6 +116,7 @@ export class FimConfig implements FimConfigProvider {
       maxPromptTokens: c.get<number>("maxPromptTokens"),
       debounceDelay: c.get<number>("debounceDelay"),
       modelTimeout: c.get<number>("modelTimeout"),
+      showWhateverWeHaveAtXMs: c.get<number>("showWhateverWeHaveAtXMs"),
       multilineCompletions: c.get<
         TabAutocompleteOptions["multilineCompletions"]
       >("multilineCompletions"),

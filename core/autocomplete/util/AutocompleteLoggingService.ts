@@ -41,6 +41,24 @@ export class AutocompleteLoggingService {
     }
   }
 
+  /**
+   * The user accepted part of the suggestion. Stops the rejection timer -- a
+   * partial accept is a positive signal -- but keeps the outcome so a
+   * subsequent full accept still resolves.
+   */
+  public partialAccept(completionId: string) {
+    const timeout = this._logRejectionTimeouts.get(completionId);
+    if (timeout) {
+      clearTimeout(timeout);
+      this._logRejectionTimeouts.delete(completionId);
+    }
+
+    const outcome = this._outcomes.get(completionId);
+    if (outcome) {
+      outcome.partiallyAccepted = true;
+    }
+  }
+
   public cancelRejectionTimeout(completionId: string) {
     if (this._logRejectionTimeouts.has(completionId)) {
       clearTimeout(this._logRejectionTimeouts.get(completionId)!);

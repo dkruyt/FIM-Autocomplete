@@ -13,8 +13,3 @@ export const openedFilesLruCache = new QuickLRU<
 >({
   maxSize: MAX_NUM_OPEN_CONTEXT_FILES,
 });
-
-// used in core/core.ts to handle removals from the cache
-export const prevFilepaths = {
-  filepaths: [] as string[],
-};

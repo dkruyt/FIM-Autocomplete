@@ -5,6 +5,12 @@ import { HelperVars } from "../util/HelperVars";
 import { GeneratorReuseManager } from "./GeneratorReuseManager";
 import { stopAfterMaxProcessingTime } from "./utils";
 
+/**
+ * Hard wall-clock kill for a generation, as a multiple of `modelTimeout`. Sits
+ * outside the transform pipeline so it still applies to a reused generator.
+ */
+const HARD_STOP_TIMEOUT_MULTIPLIER = 2.5;
+
 export class CompletionStreamer {
   private streamTransformPipeline = new StreamTransformPipeline();
   private generatorReuseManager: GeneratorReuseManager;
@@ -46,7 +52,7 @@ export class CompletionStreamer {
         return helper.options.transform
           ? stopAfterMaxProcessingTime(
               generator,
-              helper.options.modelTimeout * 2.5,
+              helper.options.modelTimeout * HARD_STOP_TIMEOUT_MULTIPLIER,
               fullStop,
             )
           : generator;

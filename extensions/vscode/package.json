@@ -230,8 +230,8 @@
         },
         "fim.modelTimeout": {
           "type": "number",
-          "default": 150,
-          "description": "Milliseconds to wait for the model before giving up."
+          "default": 1000,
+          "markdownDescription": "Emergency brake on how long the model may keep generating, in milliseconds (the actual cap is 2.5x this). Measured from the first token, so a slow endpoint is not penalised for its response time. Lower it only if you see completions running on; too low truncates them mid-line."
         },
         "fim.maxPromptTokens": {
           "type": "number",
@@ -310,6 +310,16 @@
           "type": "boolean",
           "default": false,
           "description": "Use tree-sitter/LSP static analysis to gather types and signatures."
+        },
+        "fim.debug": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Record every completion to the **FIM Autocomplete** output channel: the prompt sent to the model, which context sources contributed, latency and cache hits. Useful for checking that cross-file context is actually reaching the model. Run **FIM: Show Logs** to open the channel."
+        },
+        "fim.showWhateverWeHaveAtXMs": {
+          "type": "number",
+          "default": 300,
+          "markdownDescription": "Once the model has produced its first line, keep streaming for at most this many milliseconds before showing what we have. Bounds how long you wait for a long completion. Raise it if multi-line completions arrive truncated."
         }
       }
     },
@@ -358,6 +368,21 @@
         "command": "fim.installModel",
         "category": "FIM",
         "title": "Install Model"
+      },
+      {
+        "command": "fim.acceptNextWord",
+        "category": "FIM",
+        "title": "Accept Next Word Of Suggestion"
+      },
+      {
+        "command": "fim.acceptNextLine",
+        "category": "FIM",
+        "title": "Accept Next Line Of Suggestion"
+      },
+      {
+        "command": "fim.showLogs",
+        "category": "FIM",
+        "title": "Show Logs"
       }
     ],
     "keybindings": [
@@ -371,6 +396,18 @@
         "mac": "cmd+alt+\\",
         "key": "ctrl+alt+\\",
         "when": "editorTextFocus"
+      },
+      {
+        "command": "fim.acceptNextWord",
+        "mac": "cmd+right",
+        "key": "ctrl+right",
+        "when": "inlineSuggestionVisible && !editorReadonly"
+      },
+      {
+        "command": "fim.acceptNextLine",
+        "mac": "cmd+down",
+        "key": "ctrl+down",
+        "when": "inlineSuggestionVisible && !editorReadonly"
       }
     ],
     "menus": {
@@ -389,6 +426,14 @@
         },
         {
           "command": "fim.installModel",
+          "when": "false"
+        },
+        {
+          "command": "fim.acceptNextWord",
+          "when": "false"
+        },
+        {
+          "command": "fim.acceptNextLine",
           "when": "false"
         }
       ]

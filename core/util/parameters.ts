@@ -6,7 +6,10 @@ export const DEFAULT_AUTOCOMPLETE_OPTS: TabAutocompleteOptions = {
   prefixPercentage: 0.3,
   maxSuffixPercentage: 0.2,
   debounceDelay: 350,
-  modelTimeout: 150,
+  // Multiplied by HARD_STOP_TIMEOUT_MULTIPLIER (2.5) to cap generation time.
+  // At the old 150ms this fired routinely against any non-local endpoint and
+  // truncated completions mid-expression; it is meant as an emergency brake.
+  modelTimeout: 1000,
   multilineCompletions: "auto",
   // @deprecated TO BE REMOVED
   slidingWindowPrefixPercentage: 0.75,

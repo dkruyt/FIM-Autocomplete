@@ -1299,3 +1299,68 @@ describe("lineStream", () => {
     });
   });
 });
+
+describe("showWhateverWeHaveAtXMs", () => {
+  async function* timedLines(
+    lines: Array<[string, number]>,
+    clock: { now: number },
+  ) {
+    for (const [line, elapsed] of lines) {
+      clock.now += elapsed;
+      yield line;
+    }
+  }
+
+  it("does not count time-to-first-line against the budget", async () => {
+    // The model takes 5s to produce anything, then streams fast. All four lines
+    // must survive a 300ms budget -- measuring from subscription instead of
+    // from the first line truncated real completions to one line against any
+    // remote endpoint.
+    const clock = { now: 0 };
+    const originalDateNow = Date.now;
+    Date.now = vi.fn(() => clock.now);
+
+    const out: string[] = [];
+    for await (const line of lineStream.showWhateverWeHaveAtXMs(
+      timedLines(
+        [
+          ["a, b = 0, 1", 5000],
+          ["    for _ in range(n):", 20],
+          ["        a, b = b, a + b", 20],
+          ["    return a", 20],
+        ],
+        clock,
+      ),
+      300,
+    )) {
+      out.push(line);
+    }
+
+    expect(out).toHaveLength(4);
+    Date.now = originalDateNow;
+  });
+
+  it("still stops once streaming exceeds the budget", async () => {
+    const clock = { now: 0 };
+    const originalDateNow = Date.now;
+    Date.now = vi.fn(() => clock.now);
+
+    const out: string[] = [];
+    for await (const line of lineStream.showWhateverWeHaveAtXMs(
+      timedLines(
+        [
+          ["first", 10],
+          ["second", 5000],
+          ["third", 10],
+        ],
+        clock,
+      ),
+      300,
+    )) {
+      out.push(line);
+    }
+
+    expect(out).toEqual(["first", "second"]);
+    Date.now = originalDateNow;
+  });
+});

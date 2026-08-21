@@ -25,9 +25,15 @@ import { getStopTokens } from "./getStopTokens";
 
 function getTemplate(helper: HelperVars): AutocompleteTemplate {
   if (helper.options.template) {
+    // A custom template still targets the same model, so keep that model's stop
+    // tokens. Dropping them let generation run until the hard processing
+    // timeout aborted it mid-stream, which surfaced as client disconnections in
+    // provider logs. Users can still add their own via `completionOptions.stop`
+    // (mergeJson concatenates arrays).
+    const modelTemplate = getTemplateForModel(helper.modelName);
     return {
       template: helper.options.template,
-      completionOptions: {},
+      completionOptions: modelTemplate.completionOptions,
       compilePrefixSuffix: undefined,
     };
   }

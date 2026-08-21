@@ -86,6 +86,29 @@ export function registerAllCommands(
       );
     },
 
+    // These shadow the built-in partial-accept commands so we can observe them.
+    // The built-in still does the editing; we only add bookkeeping, and it runs
+    // in a `finally` so a failure here can never swallow the keystroke.
+    [ns("acceptNextWord")]: async () => {
+      try {
+        provider.partialAccept();
+      } finally {
+        await vscode.commands.executeCommand(
+          "editor.action.inlineSuggest.acceptNextWord",
+        );
+      }
+    },
+
+    [ns("acceptNextLine")]: async () => {
+      try {
+        provider.partialAccept();
+      } finally {
+        await vscode.commands.executeCommand(
+          "editor.action.inlineSuggest.acceptNextLine",
+        );
+      }
+    },
+
     // Fired by the InlineCompletionItem's command when the user accepts.
     [ns("logAutocompleteOutcome")]: (
       completionId: string,
@@ -93,6 +116,8 @@ export function registerAllCommands(
     ) => {
       completionProvider.accept(completionId);
     },
+
+    [ns("showLogs")]: () => provider.logger.show(),
 
     [ns("selectModel")]: () => selectModel(),
 
