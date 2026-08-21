@@ -1,7 +1,7 @@
 {
   "name": "fim-autocomplete",
   "author": "Dennis Kruyt",
-  "version": "0.4.0-pre",
+  "version": "0.4.0-pre.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/dkruyt/FIM-Autocomplete.git"
@@ -347,6 +347,11 @@
           "type": "boolean",
           "default": false,
           "markdownDescription": "Record every completion to the **FIM Autocomplete** output channel: the prompt sent to the model, which context sources contributed, latency and cache hits. Useful for checking that cross-file context is actually reaching the model. Run **FIM: Show Logs** to open the channel."
+        },
+        "fim.showStatsInStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show a running tally on the **FIM** status bar item: completions shown / accepted / acceptance rate / share served from cache. Hover it for latency and completion length. The counts live in memory for this window only and are never sent anywhere; `#fim.debug#` is a separate setting and is not required. The full breakdown, including a per-model split, is available from **FIM: Show Completion Stats**."
         },
         "fim.showWhateverWeHaveAtXMs": {
           "type": "number",

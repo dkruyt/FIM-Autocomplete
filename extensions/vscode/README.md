@@ -94,6 +94,13 @@ menu with **Select model…**, an enable/disable toggle, and a link to all setti
 | `$(circle-slash) FIM` | Disabled — `fim.enabled` is false |
 | `$(debug-pause) FIM`  | Paused because you're on battery  |
 
+It also carries a running tally of the session, `FIM 11/9/82%/9%`: suggestions
+shown, suggestions you took, acceptance rate, and the share answered from cache
+without calling the model. Hover for latency and average length; the numbers
+appear once the first suggestion has resolved. Set `fim.showStatsInStatusBar`
+to `false` to leave just the label. Nothing here is sent anywhere — see
+[Show Completion Stats](#commands) for the full breakdown.
+
 ## Commands
 
 All are under the `FIM:` prefix in the command palette.

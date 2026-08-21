@@ -161,7 +161,20 @@ def load_settings(path: Path) -> dict:
 # ──────────────────────────────────────────────────────────────────
 #  7. Seeing what it is doing
 #
-#  Two commands, from the command palette:
+#  Look at the status bar, bottom right. Next to FIM there are four
+#  numbers that move as you work:
+#
+#      FIM 11/9/82%/9%
+#          |  | |   |
+#          |  | |   `-- served from cache, no model call
+#          |  | `------ acceptance rate
+#          |  `-------- how many you took
+#          `----------- how many you were shown
+#
+#  Hover it for latency and average length. Turn it off with
+#  fim.showStatsInStatusBar if you would rather not watch.
+#
+#  Then two commands, from the command palette:
 #
 #    FIM: Show Completion Stats
 #        How this session has gone — how many suggestions appeared,

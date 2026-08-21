@@ -53,6 +53,28 @@ function percentile(sorted: number[], p: number): number {
  */
 export class AutocompleteStats {
   private records: CompletionRecord[] = [];
+  private listeners = new Set<() => void>();
+
+  /**
+   * Subscribe to changes in the tally. Returns an unsubscribe function.
+   *
+   * Exists so a live display can repaint exactly when a number moves. Polling
+   * would be the obvious alternative and is worse: a rejection is only recorded
+   * ten seconds after the suggestion was shown, so a poll interval fast enough
+   * to look live would be running constantly for the sake of one event.
+   */
+  public onChange(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private notify() {
+    for (const listener of this.listeners) {
+      listener();
+    }
+  }
 
   public record(outcome: AutocompleteOutcome, verdict: CompletionVerdict) {
     this.records.push({
@@ -66,10 +88,12 @@ export class AutocompleteStats {
     if (this.records.length > MAX_RECORDS) {
       this.records.shift();
     }
+    this.notify();
   }
 
   public clear() {
     this.records = [];
+    this.notify();
   }
 
   public get size() {
