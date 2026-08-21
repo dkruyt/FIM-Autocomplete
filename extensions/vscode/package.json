@@ -258,6 +258,13 @@
           "minimum": 32,
           "markdownDescription": "Output tokens reserved for the completion itself. Ghost text needs far less than a chat reply; the reservation comes out of the space available for the prompt."
         },
+        "fim.confidenceThreshold": {
+          "type": "number",
+          "default": 0.35,
+          "minimum": 0,
+          "maximum": 1,
+          "markdownDescription": "Suppress suggestions scoring below this for structural soundness, novelty against the code below the cursor, and how well their identifiers are grounded in surrounding code. `0` shows everything. Turn on `#fim.debug#` to see the score for each completion before changing it."
+        },
         "fim.multilineCompletions": {
           "type": "string",
           "enum": [

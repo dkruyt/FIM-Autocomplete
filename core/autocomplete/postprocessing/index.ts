@@ -1,4 +1,5 @@
 import { longestCommonSubsequence } from "../../util/lcs.js";
+import { scoreCompletion } from "./confidence.js";
 import { lineIsRepeated } from "../filtering/streamTransforms/lineStream.js";
 
 import type { ILLM } from "../../index.js";
@@ -159,11 +160,17 @@ export function postprocessCompletion({
   llm,
   prefix,
   suffix,
+  confidenceThreshold = 0,
+  contextText = "",
+  onScored,
 }: {
   completion: string;
   llm: ILLM;
   prefix: string;
   suffix: string;
+  confidenceThreshold?: number;
+  contextText?: string;
+  onScored?: (signals: ReturnType<typeof scoreCompletion>) => void;
 }): string | undefined {
   // Don't return empty
   if (isBlank(completion)) {
@@ -183,6 +190,21 @@ export function postprocessCompletion({
   // ...or of a run of lines above
   if (echoesPrefix(completion, prefix)) {
     return undefined;
+  }
+
+  // Scored even when gating is off, so the debug channel can report it and the
+  // threshold can be chosen from real numbers rather than guessed.
+  if (confidenceThreshold > 0 || onScored) {
+    const signals = scoreCompletion({
+      completion,
+      prefix,
+      suffix,
+      contextText,
+    });
+    onScored?.(signals);
+    if (signals.score < confidenceThreshold) {
+      return undefined;
+    }
   }
 
   // Filter out repetitions of many lines in a row

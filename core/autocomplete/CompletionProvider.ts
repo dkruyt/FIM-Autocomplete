@@ -7,6 +7,7 @@ import { ContextRetrievalService } from "./context/ContextRetrievalService.js";
 
 import { isSecurityConcern } from "../indexing/ignore.js";
 import { CompletionStreamer } from "./generation/CompletionStreamer.js";
+import { ConfidenceSignals } from "./postprocessing/confidence.js";
 import { postprocessCompletion } from "./postprocessing/index.js";
 import { shouldPrefilter } from "./prefiltering/index.js";
 import { getAllSnippets } from "./snippets/index.js";
@@ -207,6 +208,7 @@ export class CompletionProvider {
 
       // Completion
       let completion: string | undefined = "";
+      let confidenceSignals: ConfidenceSignals | undefined;
       const cache = await this.getCache();
       const cachedCompletion = helper.options.useCache
         ? await cache.get(helper.prunedPrefix)
@@ -246,6 +248,13 @@ export class CompletionProvider {
               prefix: helper.prunedPrefix,
               suffix: helper.prunedSuffix,
               llm,
+              confidenceThreshold: helper.options.confidenceThreshold,
+              // The snippet blob the model was actually shown, so identifiers
+              // it picked up from cross-file context count as grounded.
+              contextText: prompt,
+              onScored: (signals) => {
+                confidenceSignals = signals;
+              },
             })
           : completion;
 
@@ -281,6 +290,7 @@ export class CompletionProvider {
           clipboard: snippetPayload.clipboardSnippets.length,
           staticContext: snippetPayload.staticSnippet.length,
         },
+        confidence: confidenceSignals,
       };
 
       if (options.experimental_enableStaticContextualization) {

@@ -834,6 +834,8 @@ export interface TabAutocompleteOptions {
   maxPromptTokens: number;
   /** Output tokens reserved for the completion itself. */
   maxCompletionTokens: number;
+  /** Suppress completions scoring below this (0 disables the check). */
+  confidenceThreshold: number;
   debounceDelay: number;
   modelTimeout: number;
   maxSuffixPercentage: number;

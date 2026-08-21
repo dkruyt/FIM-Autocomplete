@@ -100,6 +100,7 @@ describe.skipIf(!LIVE)("live FIM endpoint", () => {
     console.log(`cacheHit    ${outcome.cacheHit}`);
     console.log(`stats       ${JSON.stringify(outcome.contextStats)}`);
     console.log(`sentOpts    ${JSON.stringify(outcome.completionOptions)}`);
+    console.log(`confidence  ${JSON.stringify(outcome.confidence)}`);
     console.log(`--- prompt ---\n${outcome.prompt}`);
     console.log(
       `--- completion (${outcome.numLines} line(s)) ---\n${outcome.completion}`,

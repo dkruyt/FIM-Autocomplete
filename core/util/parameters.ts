@@ -11,6 +11,10 @@ export const DEFAULT_AUTOCOMPLETE_OPTS: TabAutocompleteOptions = {
   // whose context is at or below that -- drives the prompt budget negative and
   // silently blanks the request. See renderPromptWithTokenLimit.
   maxCompletionTokens: 512,
+  // Conservative on purpose: at 0.35 only completions failing more than
+  // one signal are dropped. The right value depends on the model, so the
+  // score is reported in the fim.debug channel for tuning against real use.
+  confidenceThreshold: 0.35,
   prefixPercentage: 0.3,
   maxSuffixPercentage: 0.2,
   debounceDelay: 350,

@@ -131,6 +131,19 @@ export class AutocompleteLogger {
       }
     }
 
+    const c = outcome.confidence;
+    if (c) {
+      // Printed so fim.confidenceThreshold can be set from observed numbers
+      // rather than guessed at.
+      lines.push(
+        `confidence ${c.score.toFixed(2)} ` +
+          `(brackets ${c.bracketBalance.toFixed(2)}, ` +
+          `novelty ${c.suffixNovelty.toFixed(2)}, ` +
+          `grounding ${c.contextSupport.toFixed(2)}) ` +
+          `threshold ${outcome.confidenceThreshold}`,
+      );
+    }
+
     lines.push("prompt");
     lines.push(indent(outcome.prompt));
     lines.push("completion");
