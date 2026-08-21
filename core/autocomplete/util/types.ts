@@ -1,3 +1,4 @@
+import { ConfidenceSignals } from "../postprocessing/confidence";
 import { Position, Range, RangeInFile, TabAutocompleteOptions } from "../..";
 import { AutocompleteCodeSnippet } from "../snippets/types";
 
@@ -39,6 +40,7 @@ export interface AutocompleteContextStats {
   recentlyOpened: number;
   clipboard: number;
   staticContext: number;
+  diagnostics: number;
 }
 
 export interface AutocompleteOutcome extends TabAutocompleteOptions {
@@ -64,4 +66,5 @@ export interface AutocompleteOutcome extends TabAutocompleteOptions {
   timestamp: string;
   enabledStaticContextualization?: boolean;
   contextStats?: AutocompleteContextStats;
+  confidence?: ConfidenceSignals;
 }

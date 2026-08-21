@@ -75,6 +75,11 @@ export class FimCompletionProvider
   _lastShownCompletion: AutocompleteOutcome | undefined;
 
   /** Exposed so the accept-logging command can mark the completion accepted. */
+  /** Local-only tally of how completions have fared this session. */
+  public get stats() {
+    return this.completionProvider.stats;
+  }
+
   public accept(completionId: string) {
     this.completionProvider.accept(completionId);
   }

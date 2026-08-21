@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import { FimCompletionProvider } from "../autocomplete/completionProvider";
 import {
   StatusBarStatus,
+  bindStatusBarStats,
   monitorBatteryChanges,
   setupStatusBar,
 } from "../autocomplete/statusBar";
@@ -37,6 +38,7 @@ export async function activateExtension(context: vscode.ExtensionContext) {
 
   const provider = new FimCompletionProvider(config, ide);
   context.subscriptions.push(provider);
+  context.subscriptions.push(bindStatusBarStats(provider.stats));
   context.subscriptions.push(
     vscode.languages.registerInlineCompletionItemProvider(
       [{ pattern: "**" }],

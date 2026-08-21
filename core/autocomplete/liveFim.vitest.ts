@@ -100,6 +100,7 @@ describe.skipIf(!LIVE)("live FIM endpoint", () => {
     console.log(`cacheHit    ${outcome.cacheHit}`);
     console.log(`stats       ${JSON.stringify(outcome.contextStats)}`);
     console.log(`sentOpts    ${JSON.stringify(outcome.completionOptions)}`);
+    console.log(`confidence  ${JSON.stringify(outcome.confidence)}`);
     console.log(`--- prompt ---\n${outcome.prompt}`);
     console.log(
       `--- completion (${outcome.numLines} line(s)) ---\n${outcome.completion}`,
@@ -163,6 +164,33 @@ describe.skipIf(!LIVE)("live FIM endpoint", () => {
       );
     }
   }, 120_000);
+
+  it("writes an implementation from a comment (M9)", async () => {
+    // Cursor sits at the end of a finished comment. This used to be forced to
+    // a single line, which made the comment-then-implementation flow useless.
+    const outcome = await run(
+      "comment-driven",
+      "live_comment.py",
+      `import json\n\n\ndef load_config(path):\n    # read the file at path and parse it as JSON${CURSOR}\n`,
+    );
+    expect(outcome?.completion?.length).toBeGreaterThan(0);
+    console.log(`M9  multiline=${(outcome?.numLines ?? 0) > 1}`);
+  }, 60_000);
+
+  it("completes the tutorial's comment-driven example", async () => {
+    // Exactly the snippet in tutorial/tutorial.py section 4. If this stops
+    // producing a real implementation, the tutorial is telling users something
+    // that does not happen.
+    const outcome = await run(
+      "tutorial-section-4",
+      "live_tutorial.py",
+      `def total_price(items: list[dict]) -> float:\n    """Add up the price of every item."""\n\n    # sum the "price" of each item and return the total${CURSOR}\n`,
+    );
+    // Asserts the comment is answered with real code, not that the answer is
+    // long: how many lines it takes is the model's business, and the tutorial
+    // no longer promises a line count.
+    expect(outcome?.completion).toContain("sum(");
+  }, 60_000);
 
   it("picks up recently-edited / visited / opened context", async () => {
     // These three sources are supplied by the IDE layer; populate them the way

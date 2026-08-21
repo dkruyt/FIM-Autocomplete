@@ -1,4 +1,5 @@
 import { longestCommonSubsequence } from "../../util/lcs.js";
+import { scoreCompletion } from "./confidence.js";
 import { lineIsRepeated } from "../filtering/streamTransforms/lineStream.js";
 
 import type { ILLM } from "../../index.js";
@@ -154,16 +155,80 @@ function echoesPrefix(completion: string, prefix: string): boolean {
   return false;
 }
 
+/**
+ * When the cursor sits on a comment and the model answers with nothing but more
+ * comment, cut it back to a single line.
+ *
+ * Allowing multiline at the end of a comment is what makes "describe it, get
+ * the implementation" work, but nothing tells a finished instruction from a
+ * sentence the user is halfway through. Two shapes of this showed up in real
+ * use, and they look different on the wire:
+ *
+ *   "# This function "        -> "is not in the file, but it is used ...\n# It
+ *                                is not a part of the extension ..."
+ *   "# - Training loop logic" -> "\n# - Model saving\n# - Model loading\n..."
+ *
+ * The first continues the cursor's own line; the second starts a new one. What
+ * they share is that no line of either is code, which is the thing worth
+ * testing. Code answering a comment always contains at least one non-comment
+ * line, so "# read the file at path" answered with an indented `with` block is
+ * left alone.
+ *
+ * One more line of comment is a reasonable suggestion -- finishing a bullet, or
+ * a sentence. Six invented ones are not, so the rest is dropped rather than the
+ * whole thing: a wrong suggestion the user can see and reject beats no
+ * suggestion.
+ */
+function trimCommentOnlyCompletion(
+  completion: string,
+  prefix: string,
+  singleLineComment: string | undefined,
+): string {
+  if (!singleLineComment) {
+    return completion;
+  }
+  const lineAtCursor = prefix.split("\n").at(-1) ?? "";
+  if (!lineAtCursor.trimStart().startsWith(singleLineComment)) {
+    return completion;
+  }
+
+  const lines = completion.split("\n");
+  const isComment = (line: string, index: number) =>
+    line.trim() === "" ||
+    line.trimStart().startsWith(singleLineComment) ||
+    // The first line has no marker of its own when it continues the comment the
+    // cursor is already inside.
+    (index === 0 && !completion.startsWith("\n"));
+
+  if (!lines.every(isComment)) {
+    return completion;
+  }
+
+  const firstContentful = lines.findIndex((line) => line.trim() !== "");
+  if (firstContentful === -1) {
+    return completion;
+  }
+  return lines.slice(0, firstContentful + 1).join("\n");
+}
+
 export function postprocessCompletion({
   completion,
   llm,
   prefix,
   suffix,
+  confidenceThreshold = 0,
+  contextText = "",
+  singleLineComment,
+  onScored,
 }: {
   completion: string;
   llm: ILLM;
   prefix: string;
   suffix: string;
+  confidenceThreshold?: number;
+  contextText?: string;
+  singleLineComment?: string;
+  onScored?: (signals: ReturnType<typeof scoreCompletion>) => void;
 }): string | undefined {
   // Don't return empty
   if (isBlank(completion)) {
@@ -183,6 +248,24 @@ export function postprocessCompletion({
   // ...or of a run of lines above
   if (echoesPrefix(completion, prefix)) {
     return undefined;
+  }
+
+  // Finishing the user's sentence is fine; writing five more of them is not.
+  completion = trimCommentOnlyCompletion(completion, prefix, singleLineComment);
+
+  // Scored even when gating is off, so the debug channel can report it and the
+  // threshold can be chosen from real numbers rather than guessed.
+  if (confidenceThreshold > 0 || onScored) {
+    const signals = scoreCompletion({
+      completion,
+      prefix,
+      suffix,
+      contextText,
+    });
+    onScored?.(signals);
+    if (signals.score < confidenceThreshold) {
+      return undefined;
+    }
   }
 
   // Filter out repetitions of many lines in a row

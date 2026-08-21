@@ -92,7 +92,9 @@ Type, pause, and the suggestion shows up as grey ghost text after the cursor.
 
 The `FIM` status bar item shows state (`$(check)` idle, `$(loading~spin)` waiting
 on the model, `$(circle-slash)` disabled, `$(debug-pause)` paused on battery) and
-opens a menu with **Select model…** and a link to all settings.
+opens a menu with **Select model…** and a link to all settings. It also keeps a
+running tally — `FIM 11/9/82%/9%` is shown / accepted / acceptance rate / share
+from cache — which you can turn off with `fim.showStatsInStatusBar`.
 
 If nothing appears, the usual cause is a model that isn't a fill-in-the-middle
 code model. The

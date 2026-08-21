@@ -1,7 +1,7 @@
 {
   "name": "fim-autocomplete",
   "author": "Dennis Kruyt",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/dkruyt/FIM-Autocomplete.git"
@@ -235,8 +235,35 @@
         },
         "fim.maxPromptTokens": {
           "type": "number",
-          "default": 1024,
-          "description": "Token budget for the prompt (prefix + suffix + snippets)."
+          "default": 2048,
+          "markdownDescription": "Token budget for the whole prompt: the code around the cursor plus any context snippets. Automatically reduced when the model's context length cannot hold this much. Larger budgets give the model more to work with but cost latency."
+        },
+        "fim.prefixPercentage": {
+          "type": "number",
+          "default": 0.3,
+          "minimum": 0.05,
+          "maximum": 0.95,
+          "markdownDescription": "Share of `#fim.maxPromptTokens#` spent on the code *before* the cursor. The rest is available for the code after it and for context snippets."
+        },
+        "fim.maxSuffixPercentage": {
+          "type": "number",
+          "default": 0.2,
+          "minimum": 0.05,
+          "maximum": 0.95,
+          "markdownDescription": "Ceiling on the share of `#fim.maxPromptTokens#` spent on the code *after* the cursor. Raise it when working in large files where the code below the cursor matters."
+        },
+        "fim.maxCompletionTokens": {
+          "type": "number",
+          "default": 512,
+          "minimum": 32,
+          "markdownDescription": "Output tokens reserved for the completion itself. Ghost text needs far less than a chat reply; the reservation comes out of the space available for the prompt."
+        },
+        "fim.confidenceThreshold": {
+          "type": "number",
+          "default": 0.35,
+          "minimum": 0,
+          "maximum": 1,
+          "markdownDescription": "Suppress suggestions scoring below this for structural soundness, novelty against the code below the cursor, and how well their identifiers are grounded in surrounding code. `0` shows everything. Turn on `#fim.debug#` to see the score for each completion before changing it."
         },
         "fim.multilineCompletions": {
           "type": "string",
@@ -267,6 +294,11 @@
           "type": "boolean",
           "default": true,
           "description": "Include recently opened files as context."
+        },
+        "fim.useDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Include compiler and linter errors near the cursor in the prompt, so the model can see what is currently broken. Costs a few tokens and usually pays for itself on missing imports."
         },
         "fim.useImports": {
           "type": "boolean",
@@ -315,6 +347,11 @@
           "type": "boolean",
           "default": false,
           "markdownDescription": "Record every completion to the **FIM Autocomplete** output channel: the prompt sent to the model, which context sources contributed, latency and cache hits. Useful for checking that cross-file context is actually reaching the model. Run **FIM: Show Logs** to open the channel."
+        },
+        "fim.showStatsInStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show a running tally on the **FIM** status bar item: completions shown / accepted / acceptance rate / share served from cache. Hover it for latency and completion length. The counts live in memory for this window only and are never sent anywhere; `#fim.debug#` is a separate setting and is not required. The full breakdown, including a per-model split, is available from **FIM: Show Completion Stats**."
         },
         "fim.showWhateverWeHaveAtXMs": {
           "type": "number",
@@ -383,6 +420,11 @@
         "command": "fim.showLogs",
         "category": "FIM",
         "title": "Show Logs"
+      },
+      {
+        "command": "fim.showStats",
+        "category": "FIM",
+        "title": "Show Completion Stats"
       }
     ],
     "keybindings": [

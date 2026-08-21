@@ -6,8 +6,8 @@ import { shouldCompleteMultiline } from "./classification/shouldCompleteMultilin
 import { ContextRetrievalService } from "./context/ContextRetrievalService.js";
 
 import { isSecurityConcern } from "../indexing/ignore.js";
-import { BracketMatchingService } from "./filtering/BracketMatchingService.js";
 import { CompletionStreamer } from "./generation/CompletionStreamer.js";
+import { ConfidenceSignals } from "./postprocessing/confidence.js";
 import { postprocessCompletion } from "./postprocessing/index.js";
 import { shouldPrefilter } from "./prefiltering/index.js";
 import { getAllSnippets } from "./snippets/index.js";
@@ -19,6 +19,7 @@ import {
 import { AutocompleteDebouncer } from "./util/AutocompleteDebouncer.js";
 import { AutocompleteLoggingService } from "./util/AutocompleteLoggingService.js";
 import AutocompleteLruCache from "./util/AutocompleteLruCache.js";
+import { resolveContextBudget } from "./util/contextBudget.js";
 import { HelperVars } from "./util/HelperVars.js";
 import { AutocompleteInput, AutocompleteOutcome } from "./util/types.js";
 
@@ -35,7 +36,6 @@ const ERRORS_TO_IGNORE = [
 export class CompletionProvider {
   private autocompleteCache?: AutocompleteLruCache;
   public errorsShown: Set<string> = new Set();
-  private bracketMatchingService = new BracketMatchingService();
   private debouncer = new AutocompleteDebouncer();
   private completionStreamer: CompletionStreamer;
   private loggingService = new AutocompleteLoggingService();
@@ -119,14 +119,12 @@ export class CompletionProvider {
   }
 
   public accept(completionId: string) {
-    const outcome = this.loggingService.accept(completionId);
-    if (!outcome) {
-      return;
-    }
-    this.bracketMatchingService.handleAcceptedCompletion(
-      outcome.completion,
-      outcome.filepath,
-    );
+    this.loggingService.accept(completionId);
+  }
+
+  /** Local-only tally of how completions have fared this session. */
+  public get stats() {
+    return this.loggingService.stats;
   }
 
   public partialAccept(completionId: string) {
@@ -186,7 +184,7 @@ export class CompletionProvider {
 
       const helper = await HelperVars.create(
         input,
-        options,
+        resolveContextBudget(options, llm),
         llm.model,
         this.ide,
       );
@@ -215,6 +213,7 @@ export class CompletionProvider {
 
       // Completion
       let completion: string | undefined = "";
+      let confidenceSignals: ConfidenceSignals | undefined;
       const cache = await this.getCache();
       const cachedCompletion = helper.options.useCache
         ? await cache.get(helper.prunedPrefix)
@@ -254,6 +253,14 @@ export class CompletionProvider {
               prefix: helper.prunedPrefix,
               suffix: helper.prunedSuffix,
               llm,
+              confidenceThreshold: helper.options.confidenceThreshold,
+              singleLineComment: helper.lang.singleLineComment,
+              // The snippet blob the model was actually shown, so identifiers
+              // it picked up from cross-file context count as grounded.
+              contextText: prompt,
+              onScored: (signals) => {
+                confidenceSignals = signals;
+              },
             })
           : completion;
 
@@ -288,7 +295,9 @@ export class CompletionProvider {
           recentlyOpened: snippetPayload.recentlyOpenedFileSnippets.length,
           clipboard: snippetPayload.clipboardSnippets.length,
           staticContext: snippetPayload.staticSnippet.length,
+          diagnostics: snippetPayload.diagnosticsSnippets.length,
         },
+        confidence: confidenceSignals,
       };
 
       if (options.experimental_enableStaticContextualization) {

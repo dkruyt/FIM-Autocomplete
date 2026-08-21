@@ -6,6 +6,7 @@ import {
   AutocompleteSnippetType,
   AutocompleteStaticSnippet,
 } from "../snippets/types";
+import { getSymbolsForSnippet } from "../context/ranking";
 import { HelperVars } from "../util/HelperVars";
 import { formatOpenedFilesContext } from "./formatOpenedFilesContext";
 
@@ -20,16 +21,53 @@ const getRemainingTokenCount = (helper: HelperVars): number => {
 const TOKEN_BUFFER = 10; // We may need extra tokens for snippet description etc.
 
 /**
- * Shuffles an array in place using the Fisher-Yates algorithm.
- * @param array The array to shuffle.
- * @returns The shuffled array.
+ * Orders snippets by how much their symbols overlap the code around the caret.
+ *
+ * The token budget routinely truncates this list, so ordering decides which
+ * context actually reaches the model. This used to be `shuffleArray`, which
+ * made that a coin flip: the same cursor position could produce a good
+ * completion or a bad one depending on which snippets happened to survive.
+ *
+ * Overlap is normalised by the square root of the snippet's symbol count.
+ * Dividing by the raw count over-punishes a large, genuinely relevant file;
+ * not normalising at all lets any big file win on volume. The square root is
+ * the usual compromise (it is what TF-IDF length normalisation does).
+ *
+ * Sorting is stable, so equal scores keep their original source order --
+ * root-path, then import definitions, then static context -- which is a
+ * meaningful fallback rather than an arbitrary one.
  */
-const shuffleArray = <T>(array: T[]): T[] => {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
+export const rankSnippetsByRelevance = <T extends AutocompleteSnippet>(
+  snippets: T[],
+  caretWindow: string,
+): T[] => {
+  if (snippets.length < 2) {
+    return snippets;
   }
-  return array;
+
+  const caretSymbols = getSymbolsForSnippet(caretWindow);
+  if (caretSymbols.size === 0) {
+    return snippets;
+  }
+
+  const scored = snippets.map((snippet, index) => {
+    const symbols = getSymbolsForSnippet(snippet.content);
+    let overlap = 0;
+    for (const symbol of symbols) {
+      if (caretSymbols.has(symbol)) {
+        overlap++;
+      }
+    }
+    return {
+      snippet,
+      index,
+      score: symbols.size === 0 ? 0 : overlap / Math.sqrt(symbols.size),
+    };
+  });
+
+  return scored
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map(({ snippet }) => snippet);
 };
 
 function filterSnippetsAlreadyInCaretWindow(
@@ -45,12 +83,28 @@ export const getSnippets = (
   helper: HelperVars,
   payload: SnippetPayload,
 ): AutocompleteSnippet[] => {
+  // Every code bucket is stripped of anything already visible around the
+  // cursor. Restricting this to `base` meant a range the user had just edited
+  // in this file was sent as a snippet *and* sat a few lines later in the
+  // prefix, paying twice for one piece of code -- and the copy in the snippet
+  // is the older of the two.
+  const withoutDuplicates = (snippets: AutocompleteCodeSnippet[]) =>
+    filterSnippetsAlreadyInCaretWindow(
+      snippets,
+      helper.prunedCaretWindow,
+    ) as AutocompleteCodeSnippet[];
+
   const snippets = {
+    diagnostics: payload.diagnosticsSnippets,
     clipboard: payload.clipboardSnippets,
-    recentlyVisitedRanges: payload.recentlyVisitedRangesSnippets,
-    recentlyEditedRanges: payload.recentlyEditedRangeSnippets,
-    recentlyOpenedFiles: payload.recentlyOpenedFileSnippets,
-    base: shuffleArray(
+    recentlyVisitedRanges: withoutDuplicates(
+      payload.recentlyVisitedRangesSnippets,
+    ),
+    recentlyEditedRanges: withoutDuplicates(
+      payload.recentlyEditedRangeSnippets,
+    ),
+    recentlyOpenedFiles: withoutDuplicates(payload.recentlyOpenedFileSnippets),
+    base: rankSnippetsByRelevance(
       filterSnippetsAlreadyInCaretWindow(
         [
           ...payload.rootPathSnippets,
@@ -59,34 +113,43 @@ export const getSnippets = (
         ],
         helper.prunedCaretWindow,
       ),
+      helper.prunedCaretWindow,
     ),
   };
 
-  // Define snippets with their priorities
+  // Define snippets with their priorities.
+  //
+  // Deliberately carries no `snippets` field: the loop below reads
+  // `snippets[key]`, so a copy here was never read -- but it was still
+  // evaluated, which meant the base bucket was filtered and ordered twice on
+  // every keystroke.
   const snippetConfigs: {
     key: keyof typeof snippets;
     enabledOrPriority: boolean | number;
     defaultPriority: number;
-    snippets: AutocompleteSnippet[];
   }[] = [
+    {
+      // An error beside the cursor is the most specific statement available
+      // about what the user is trying to do, and it is a handful of tokens.
+      key: "diagnostics",
+      enabledOrPriority: helper.options.useDiagnostics,
+      defaultPriority: 0,
+    },
     {
       key: "clipboard",
       enabledOrPriority: helper.options.experimental_includeClipboard,
       defaultPriority: 1,
-      snippets: payload.clipboardSnippets,
     },
     {
       key: "recentlyOpenedFiles",
       enabledOrPriority: helper.options.useRecentlyOpened,
       defaultPriority: 2,
-      snippets: payload.recentlyOpenedFileSnippets,
     },
     {
       key: "recentlyVisitedRanges",
       enabledOrPriority:
         helper.options.experimental_includeRecentlyVisitedRanges,
       defaultPriority: 3,
-      snippets: payload.recentlyVisitedRangesSnippets,
       /* TODO: recentlyVisitedRanges also contain contents from other windows like terminal or output
       if they are visible. We should handle them separately so that we can control their priority
       and whether they should be included or not. */
@@ -96,23 +159,12 @@ export const getSnippets = (
       enabledOrPriority:
         helper.options.experimental_includeRecentlyEditedRanges,
       defaultPriority: 4,
-      snippets: payload.recentlyEditedRangeSnippets,
     },
 
     {
       key: "base",
       enabledOrPriority: true,
       defaultPriority: 99, // make sure it's the last one to be processed, but still possible to override
-      snippets: shuffleArray(
-        filterSnippetsAlreadyInCaretWindow(
-          [
-            ...payload.rootPathSnippets,
-            ...payload.importDefinitionSnippets,
-            ...payload.staticSnippet,
-          ],
-          helper.prunedCaretWindow,
-        ),
-      ),
     },
   ];
 
@@ -140,7 +192,9 @@ export const getSnippets = (
     if (key === "recentlyOpenedFiles" && helper.options.useRecentlyOpened) {
       // Custom trimming
       const processedSnippets = formatOpenedFilesContext(
-        payload.recentlyOpenedFileSnippets,
+        // The deduplicated bucket, not the raw payload -- this branch used to
+        // reach past the filtering above.
+        snippets.recentlyOpenedFiles,
         remainingTokenCount,
         helper,
         finalSnippets,
