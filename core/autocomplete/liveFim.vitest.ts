@@ -177,6 +177,21 @@ describe.skipIf(!LIVE)("live FIM endpoint", () => {
     console.log(`M9  multiline=${(outcome?.numLines ?? 0) > 1}`);
   }, 60_000);
 
+  it("completes the tutorial's comment-driven example", async () => {
+    // Exactly the snippet in tutorial/tutorial.py section 4. If this stops
+    // producing a real implementation, the tutorial is telling users something
+    // that does not happen.
+    const outcome = await run(
+      "tutorial-section-4",
+      "live_tutorial.py",
+      `def total_price(items: list[dict]) -> float:\n    """Add up the price of every item."""\n\n    # sum the "price" of each item and return the total${CURSOR}\n`,
+    );
+    // Asserts the comment is answered with real code, not that the answer is
+    // long: how many lines it takes is the model's business, and the tutorial
+    // no longer promises a line count.
+    expect(outcome?.completion).toContain("sum(");
+  }, 60_000);
+
   it("picks up recently-edited / visited / opened context", async () => {
     // These three sources are supplied by the IDE layer; populate them the way
     // the VS Code trackers now do, to prove the payload reaches the prompt.
