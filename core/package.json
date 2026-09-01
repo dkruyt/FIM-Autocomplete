@@ -59,7 +59,7 @@
     "tree-sitter-wasms": "^0.1.11",
     "uri-js": "^4.4.1",
     "uuid": "^9.0.1",
-    "web-tree-sitter": "^0.21.0",
+    "web-tree-sitter": "^0.26.13",
     "win-ca": "^3.5.1",
     "winston": "^3.17.0",
     "workerpool": "^10.0.3",
